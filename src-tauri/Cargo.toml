@@ -1,0 +1,22 @@
+[package]
+name = "mail-escape-hatch"
+version = "0.1.0"
+description = "Verify and export portable local mail archives"
+authors = ["Param Factory"]
+license = "MIT"
+edition = "2021"
+
+[lib]
+name = "mail_escape_hatch_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+imap = "2.4"
+keyring = { version = "3.6", features = ["apple-native", "windows-native", "sync-secret-service"] }
+native-tls = "0.2"
+serde = { version = "1", features = ["derive"] }
+tauri = { version = "2", features = [] }
+

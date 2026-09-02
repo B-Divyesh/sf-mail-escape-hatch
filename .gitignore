@@ -3,4 +3,7 @@ dist/
 .env
 *.log
 graphify-out/
+target/
+test-results/
+playwright-report/
 .DS_Store
