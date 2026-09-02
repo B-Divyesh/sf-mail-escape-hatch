@@ -7,6 +7,7 @@ const app = document.querySelector<HTMLDivElement>('#app')!;
 const isDesktop = '__TAURI_INTERNALS__' in window;
 let archive: ArchiveResult | null = null;
 let demoMode = false;
+let sourceError = '';
 
 const routeInfo: Record<string, { title: string; description: string }> = {
   '/': { title: 'Mail Escape Hatch — Verify a local mail archive', description: 'Import MBOX, Maildir, or IMAP mail. Check every message and attachment, then keep a portable local archive.' },
@@ -27,7 +28,7 @@ function header(): string {
 }
 
 function footer(): string {
-  return `<footer class="site-footer"><div><strong>Mail Escape Hatch</strong><p>Verify mail, then keep a portable local copy.</p></div><nav aria-label="Footer"><a href="/privacy" data-link>Privacy</a><a href="/terms" data-link>Terms</a><a href="https://sociobot.in" rel="external">Built by Param Factory <span class="sr-only">(external site)</span></a></nav><small>Version 0.1.0 · Generated artwork</small></footer>`;
+  return `<footer class="site-footer"><div><strong>Mail Escape Hatch</strong><p>Verify mail, then keep a portable local copy.</p></div><nav aria-label="Footer"><a href="/privacy" data-link>Privacy</a><a href="/terms" data-link>Terms</a><a href="https://sociobot.in" rel="external">Built by Param Factory <span class="sr-only">(external site)</span></a></nav><small>Version 0.1.1 · Generated artwork</small></footer>`;
 }
 
 function facts(): string {
@@ -59,7 +60,7 @@ function workspace(): string {
 }
 
 function sourcePicker(): string {
-  return `<section class="source-picker" aria-labelledby="source-title"><h2 id="source-title">Choose a source</h2><div class="source-options"><label class="source-option"><span class="source-icon" aria-hidden="true">▤</span><strong>Open MBOX or EML</strong><span>Choose one or more exported files.</span><input type="file" data-file-input accept=".mbox,.mbx,.eml,message/rfc822,application/mbox" multiple></label><label class="source-option"><span class="source-icon" aria-hidden="true">▥</span><strong>Open Maildir folder</strong><span>Choose the folder that contains cur and new.</span><input type="file" data-dir-input multiple webkitdirectory></label><button class="source-option" type="button" data-imap-open><span class="source-icon" aria-hidden="true">⌁</span><strong>Connect to IMAP</strong><span>${isDesktop ? 'Download mail directly from your provider.' : 'Available in the desktop app.'}</span></button></div><p class="source-note">Nothing is changed at the source. Large imports may take several minutes.</p><p id="source-status" class="source-status" role="status"></p></section>${imapDialog()}`;
+  return `<section class="source-picker" aria-labelledby="source-title"><h2 id="source-title">Choose a source</h2><div class="source-options"><label class="source-option"><span class="source-icon" aria-hidden="true">▤</span><strong>Open MBOX or EML</strong><span>Choose one or more exported files.</span><input type="file" data-file-input accept=".mbox,.mbx,.eml,message/rfc822,application/mbox" multiple></label><label class="source-option"><span class="source-icon" aria-hidden="true">▥</span><strong>Open Maildir folder</strong><span>Choose the folder that contains cur and new.</span><input type="file" data-dir-input multiple webkitdirectory></label><button class="source-option" type="button" data-imap-open><span class="source-icon" aria-hidden="true">⌁</span><strong>Connect to IMAP</strong><span>${isDesktop ? 'Download mail directly from your provider.' : 'Available in the desktop app.'}</span></button></div><p class="source-note">Nothing is changed at the source. Large imports may take several minutes.</p><p id="source-status" class="source-status" role="status">${html(sourceError)}</p></section>${imapDialog()}`;
 }
 
 function imapDialog(): string {
@@ -69,7 +70,7 @@ function imapDialog(): string {
 function reportView(result: ArchiveResult): string {
   const attachmentCount = result.messages.reduce((sum, message) => sum + message.attachments.length, 0);
   const rows = result.messages.map((message) => `<tr><td><strong>${html(message.subject)}</strong><small>${html(message.from)}</small></td><td>${html(message.folder)}</td><td>${message.attachments.length}</td><td><code title="${message.hash}">${message.hash.slice(0, 12)}…</code></td><td>${message.date ? '<span class="status-ok">Checked</span>' : '<span class="status-warn">Review date</span>'}</td></tr>`).join('');
-  return `<section class="report" aria-labelledby="report-title"><div class="report-summary"><div><p class="eyebrow">${html(result.sourceType)} · ${html(result.sourceName)}</p><h2 id="report-title">Verification report</h2></div><div class="report-state"><span aria-hidden="true">${result.anomalies.length ? '◇' : '✓'}</span><strong>${result.anomalies.length ? `${result.anomalies.length} issue${result.anomalies.length === 1 ? '' : 's'} to review` : 'All checks passed'}</strong></div></div><div class="totals"><div><strong>${result.folders.length}</strong><span>folders</span></div><div><strong>${result.messages.length}</strong><span>messages</span></div><div><strong>${attachmentCount}</strong><span>attachments</span></div></div>${result.anomalies.length ? `<div class="anomalies"><h3>Issues to review</h3><ul>${result.anomalies.map((item) => `<li><span aria-hidden="true">◇</span>${html(item.detail)}</li>`).join('')}</ul></div>` : ''}<div class="table-scroll"><table><caption>Every imported message and its check result</caption><thead><tr><th>Message</th><th>Folder</th><th>Files</th><th>SHA-256</th><th>Result</th></tr></thead><tbody>${rows}</tbody></table></div><div class="report-actions"><button class="button secondary" data-new-import>Choose different mail</button><button class="button primary" data-export>Save portable archive</button></div></section>`;
+  return `<section class="report" aria-labelledby="report-title"><div class="report-summary"><div><p class="eyebrow">${html(result.sourceType)} · ${html(result.sourceName)}</p><h2 id="report-title">Verification report</h2></div><div class="report-state"><span aria-hidden="true">${result.anomalies.length ? '◇' : '✓'}</span><strong>${result.anomalies.length ? `${result.anomalies.length} issue${result.anomalies.length === 1 ? '' : 's'} to review` : 'All checks passed'}</strong></div></div><div class="totals"><div><strong>${result.folders.length}</strong><span>folders</span></div><div><strong>${result.messages.length}</strong><span>messages</span></div><div><strong>${attachmentCount}</strong><span>attachments</span></div></div>${result.anomalies.length ? `<div class="anomalies"><h3>Issues to review</h3><ul>${result.anomalies.map((item) => `<li><span aria-hidden="true">◇</span>${html(item.detail)}</li>`).join('')}</ul></div>` : ''}<div class="table-scroll" tabindex="0" role="region" aria-label="Scrollable verification report table"><table><caption>Every imported message and its check result</caption><thead><tr><th>Message</th><th>Folder</th><th>Files</th><th>SHA-256</th><th>Result</th></tr></thead><tbody>${rows}</tbody></table></div><div class="report-actions"><button class="button secondary" data-new-import>Choose different mail</button><button class="button primary" data-export>Save portable archive</button></div></section>`;
 }
 
 function legal(kind: 'privacy' | 'terms'): string {
@@ -106,7 +107,7 @@ function bindActions(): void {
   document.querySelector<HTMLInputElement>('[data-file-input]')?.addEventListener('change', async (event) => handleFiles(Array.from((event.currentTarget as HTMLInputElement).files || [])));
   document.querySelector<HTMLInputElement>('[data-dir-input]')?.addEventListener('change', async (event) => handleFiles(Array.from((event.currentTarget as HTMLInputElement).files || []), 'Maildir'));
   document.querySelectorAll('[data-export]').forEach((button) => button.addEventListener('click', exportArchive));
-  document.querySelector('[data-new-import]')?.addEventListener('click', () => { archive = null; demoMode = false; void render('/demo'); });
+  document.querySelector('[data-new-import]')?.addEventListener('click', () => { archive = null; demoMode = false; sourceError = ''; void render('/app'); });
   document.querySelector('[data-reset-demo]')?.addEventListener('click', async () => { archive = await sampleArchive(); void render('/demo'); });
   document.querySelector('[data-start-real]')?.addEventListener('click', () => { archive = null; demoMode = false; if (isDesktop) void render('/app'); else void render('/', true).then(() => document.querySelector('#download-title')?.scrollIntoView()); });
   document.querySelector('[data-imap-open]')?.addEventListener('click', () => (document.querySelector('#imap-dialog') as HTMLDialogElement).showModal());
@@ -118,8 +119,8 @@ async function handleFiles(files: File[], forcedType?: 'Maildir'): Promise<void>
   const status = document.querySelector<HTMLElement>('#source-status');
   main.setAttribute('aria-busy', 'true');
   if (status) status.textContent = 'Reading messages and calculating hashes…';
-  try { archive = await buildArchive(files, forcedType); demoMode = false; await render('/app'); }
-  catch (error) { announce(error instanceof Error ? error.message : 'The mail files could not be read. Choose them again.'); }
+  try { archive = await buildArchive(files, forcedType); sourceError = ''; demoMode = false; await render('/app'); }
+  catch (error) { sourceError = error instanceof Error ? error.message : 'The mail files could not be read. Choose them again.'; await render('/app'); announce(sourceError); }
   finally { main.removeAttribute('aria-busy'); }
 }
 

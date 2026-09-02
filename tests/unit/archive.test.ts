@@ -61,6 +61,23 @@ describe('archive engine', () => {
     expect(JSON.parse(strFromU8(files['manifest.json'])).messages[0].attachments[0].archivePath).toBe('attachments/00001/01-report_final.pdf');
   });
 
+  it('@claim:mime-attachment-completeness keeps unnamed attachments and RFC 2231 continued filenames', async () => {
+    const message = `Message-ID: <continued@test>\r\nDate: Tue, 18 Aug 2026 09:14:00 +0000\r\nFrom: One <one@test>\r\nSubject: Every attachment\r\nContent-Type: multipart/mixed; boundary="b"\r\n\r\n--b\r\nContent-Type: application/octet-stream\r\nContent-Disposition: attachment\r\nContent-Transfer-Encoding: base64\r\n\r\nSGVsbG8=\r\n--b\r\nContent-Type: application/pdf\r\nContent-Disposition: attachment; filename*0*=UTF-8''quarterly%20; filename*1*=report.pdf\r\nContent-Transfer-Encoding: base64\r\n\r\nUERG\r\n--b--\r\n`;
+    const result = await buildArchive([new File([message], 'continued.eml')]);
+    const attachments = result.messages[0].attachments;
+    expect(result.anomalies).toEqual([]);
+    expect(attachments).toHaveLength(2);
+    expect(attachments[0]).toMatchObject({ name: 'attachment-1.octet-stream', size: 5 });
+    expect(new TextDecoder().decode(attachments[0].content)).toBe('Hello');
+    expect(attachments[1]).toMatchObject({ name: 'quarterly report.pdf', size: 3 });
+    const files = unzipSync(createPortableArchive(result));
+    expect(Object.keys(files)).toEqual(expect.arrayContaining([
+      'attachments/00001/01-attachment-1.octet-stream',
+      'attachments/00001/02-quarterly_report.pdf'
+    ]));
+    expect(JSON.parse(strFromU8(files['manifest.json'])).counts.attachments).toBe(2);
+  });
+
   it('@claim:invalid-attachments rejects malformed base64 instead of exporting an empty attachment or reporting success', async () => {
     const message = `Message-ID: <broken@test>\nDate: Tue, 18 Aug 2026 09:14:00 +0000\nFrom: One <one@test>\nSubject: Broken\nContent-Type: multipart/mixed; boundary="b"\n\n--b\nContent-Type: application/pdf\nContent-Disposition: attachment; filename="evidence.pdf"\nContent-Transfer-Encoding: base64\n\nnot valid base64!\n--b--\n`;
     const result = await buildArchive([new File([message], 'broken.eml')]);

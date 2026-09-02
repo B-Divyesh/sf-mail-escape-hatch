@@ -1,38 +1,59 @@
-# Mail Escape Hatch verification handoff
+# Mail Escape Hatch repair handoff
 
-## Result: FAIL
+## Repair scope
 
-Independent verification of candidate `f539e23cb9b200976701fde8dd22cc6094a58165` at `https://mail-escape-hatch.sociobot.in` completed on 2026-09-02 UTC. Do not release or direct users to the current desktop downloads.
+This repair addresses every release blocker in independent verification report
+`2efe69b0970dd185a876de532a2d229231faa91c` and releases the repaired desktop
+app as version 0.1.1.
 
-The first-read demo gate passes, all 17 declared claim commands pass after clean dependency installation, the full unit/E2E/Rust suites pass, the site and candidate desktop `.deb` build, and the live static files exactly match the candidate. The release still fails the product contract for two critical reasons:
+- Valid unnamed MIME attachments now receive a deterministic archive name and
+  are decoded, counted, linked, and hashed.
+- RFC 2231 continued filename parameters (`filename*0*`, `filename*1*`, …)
+  now decode as one filename. Both forms have unit and browser claim coverage.
+- The report table is keyboard-focusable as a labelled scroll region; mobile
+  wordmark and navigation targets meet 44×44 px. The 390 px axe test is clean.
+- **Choose different mail** returns to the real `/app` source picker. Failed
+  imports persist a useful source error rather than a stale reading status.
+- The static 404 loads its stylesheet from `404.css`, complying with
+  `style-src 'self'`.
+- The service worker cache is `mail-escape-hatch-v2`; activation skips waiting,
+  claims clients, and removes retired cache names so v1-controlled pages update.
+- IMAP protocol coverage now drives the real IMAP client against a scripted
+  peer, proving `EXAMINE`, `BODY.PEEK[]`, downloaded bytes, and an observable
+  denied-folder report. Password handling has its own persistence claim test.
+- Rust is formatted, strict Clippy-clean, and exposed through `npm run lint:rust`.
 
-1. The live download installs `v0.1.0`, built by GitHub Actions from `96436b5…` before the preservation repairs. The published binary contains `1:*RFC822`; the candidate binary contains `1:*BODY.PEEK[]`. The currently published desktop app is the known-bad pre-repair build.
-2. Candidate and live code silently omit valid MIME attachments without filenames and RFC 2231 continued filenames. A live import showed **All checks passed** with `0 attachments` and no anomaly.
+## Local verification
 
-Additional blockers: an old service worker remains pinned to the pre-repair app after online and offline update attempts; axe finds a serious keyboard-inaccessible horizontal report region at 390 px; the live 404 violates its CSP; **Choose different mail** opens demo data rather than the picker; and important password/IMAP claims lack observable end-to-end tests.
+Run from a clean install:
 
-See `.factory/verification-2.md` for commands, hashes, browser evidence, performance results, and the complete severity list.
+```sh
+npm ci
+npm test
+npm run build
+npm run lint:rust
+cargo test --locked --manifest-path src-tauri/Cargo.toml
+CI=true npm run tauri build -- --bundles deb
+```
 
-## Verification summary
+Observed before handoff: 14 Vitest tests, 8 Playwright desktop/browser tests
+(including a 390 px axe scan), 4 Rust tests, strict Clippy, build, and a local
+Linux Debian desktop package all pass. The local Debian package is
+`Mail Escape Hatch_0.1.1_amd64.deb` (SHA-256
+`959f0cdb629284d456b395bf6e41d730a349468e890894c9226c9c7621083e63`).
+Production build output is `dist/site/`; the largest application JS file is
+39.57 kB raw / 16.02 kB gzip.
 
-- `npm ci`: PASS, zero audit findings.
-- Every command in `.factory/claims.json`: PASS after install (17/17).
-- `npm test`: PASS (11 unit, 6 Playwright).
-- `npx tsc --noEmit`: PASS.
-- `npm run build`: PASS; output in `dist/site/`.
-- `cargo test --locked --manifest-path src-tauri/Cargo.toml`: PASS (3 tests).
-- `CI=true npm run tauri build -- --bundles deb`: PASS.
-- `cargo fmt --check`: FAIL.
-- strict Clippy: FAIL on `items_after_test_module`.
-- Stable Lighthouse mobile: 97 Performance, 100 Accessibility, 100 Best Practices, 100 SEO; LCP 1.9 s, CLS 0, TBT 170 ms.
-- No product backend, unlock endpoint, or sign-in exists; rate-limit and Entra checks are not applicable.
+## Release and deployment
 
-## Required before re-verification
+Version 0.1.1 is configured in `package.json`, `Cargo.toml`, and Tauri config.
+The GitHub Actions release workflow creates checksum manifests and platform
+installers from tag `v0.1.1`; deployment must serve the current `dist/site`
+build so the landing-page GitHub API lookup selects this immutable release.
 
-- Fix valid MIME attachment omission and add representative claim tests.
-- Publish a new desktop release from the repaired commit and update the live download.
-- Version and verify the service-worker upgrade path.
-- Clear the accessibility, CSP, and workflow defects documented in `verification-2.md`.
-- Add real IMAP behavior coverage and make formatting/Clippy clean.
+## Known limits / operator action
 
-No product code, infrastructure, DNS, billing, or external service settings were modified during verification.
+Desktop builds are intentionally unsigned. macOS notarization and Windows
+Authenticode still require the owner-provided `APPLE_CERTIFICATE` and
+`WINDOWS_CERT_PFX` secrets. No analytics, mail upload, credentials persistence,
+or payment integration was added.

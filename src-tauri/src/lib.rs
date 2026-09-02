@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::io::{Read, Write};
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -58,6 +59,14 @@ fn download_imap(config: ImapConfig) -> Result<ImapImport, String> {
         .login(&config.username, &config.password)
         .map_err(|(error, _)| format!("The server rejected the login: {error}"))?;
 
+    let result = download_session(&mut session);
+    session.logout().ok();
+    result
+}
+
+/// Runs all folder commands through the IMAP client. Keeping this separate from
+/// TLS/login lets the protocol contract be exercised against a local IMAP peer.
+fn download_session<T: Read + Write>(session: &mut imap::Session<T>) -> Result<ImapImport, String> {
     let mailboxes = session
         .list(None, Some("*"))
         .map_err(|error| format!("Folders could not be listed: {error}"))?
@@ -79,7 +88,10 @@ fn download_imap(config: ImapConfig) -> Result<ImapImport, String> {
         let mailbox = match session.examine(&folder) {
             Ok(value) => value,
             Err(error) => {
-                folder_issues.push(FolderIssue { folder, detail: format!("Could not open folder read-only: {error}") });
+                folder_issues.push(FolderIssue {
+                    folder,
+                    detail: format!("Could not open folder read-only: {error}"),
+                });
                 continue;
             }
         };
@@ -97,7 +109,10 @@ fn download_imap(config: ImapConfig) -> Result<ImapImport, String> {
         let fetched = match session.fetch("1:*", READ_ONLY_BODY_FETCH) {
             Ok(value) => value,
             Err(error) => {
-                folder_issues.push(FolderIssue { folder, detail: format!("Messages could not be read: {error}") });
+                folder_issues.push(FolderIssue {
+                    folder,
+                    detail: format!("Messages could not be read: {error}"),
+                });
                 continue;
             }
         };
@@ -110,7 +125,6 @@ fn download_imap(config: ImapConfig) -> Result<ImapImport, String> {
             }
         }
     }
-    session.logout().ok();
     if output.is_empty() {
         return Err("No readable messages were returned by the server.".into());
     }
@@ -121,9 +135,45 @@ fn download_imap(config: ImapConfig) -> Result<ImapImport, String> {
     })
 }
 
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
+pub fn run() {
+    tauri::Builder::default()
+        .invoke_handler(tauri::generate_handler![import_imap])
+        .run(tauri::generate_context!())
+        .expect("Mail Escape Hatch could not start");
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::{self, Read, Write};
+    use std::sync::{Arc, Mutex};
+
+    #[derive(Debug)]
+    struct ScriptedImap {
+        responses: io::Cursor<Vec<u8>>,
+        written: Arc<Mutex<Vec<u8>>>,
+    }
+
+    impl Read for ScriptedImap {
+        fn read(&mut self, buffer: &mut [u8]) -> io::Result<usize> {
+            self.responses.read(buffer)
+        }
+    }
+
+    impl Write for ScriptedImap {
+        fn write(&mut self, buffer: &[u8]) -> io::Result<usize> {
+            self.written
+                .lock()
+                .expect("write log lock")
+                .extend_from_slice(buffer);
+            Ok(buffer.len())
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            Ok(())
+        }
+    }
 
     #[test]
     fn imap_import_uses_a_non_seen_setting_fetch_item() {
@@ -133,7 +183,10 @@ mod tests {
 
     #[test]
     fn folder_errors_are_serializable_and_never_disappear() {
-        let issue = FolderIssue { folder: "Archive/2024".into(), detail: "Could not open folder read-only: denied".into() };
+        let issue = FolderIssue {
+            folder: "Archive/2024".into(),
+            detail: "Could not open folder read-only: denied".into(),
+        };
         let encoded = serde_json::to_string(&issue).expect("folder issue serializes");
         assert!(encoded.contains("Archive/2024"));
         assert!(encoded.contains("denied"));
@@ -141,15 +194,46 @@ mod tests {
 
     #[test]
     fn imported_message_keeps_non_utf8_octets() {
-        let message = ImportedMessage { folder: "Inbox".into(), raw: vec![b'c', b'a', b'f', 0xe9] };
+        let message = ImportedMessage {
+            folder: "Inbox".into(),
+            raw: vec![b'c', b'a', b'f', 0xe9],
+        };
         assert_eq!(message.raw, vec![0x63, 0x61, 0x66, 0xe9]);
     }
-}
 
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub fn run() {
-    tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![import_imap])
-        .run(tauri::generate_context!())
-        .expect("Mail Escape Hatch could not start");
+    #[test]
+    fn imap_import_uses_examine_peek_and_reports_a_real_folder_failure() {
+        let raw = b"Message-ID: <imap@test>\r\nFrom: one@test\r\nSubject: IMAP\r\n\r\nHello";
+        let script = format!(
+            "* OK local test server\r\na1 OK LOGIN completed\r\n* LIST () \"/\" \"Inbox\"\r\n* LIST () \"/\" \"Locked\"\r\na2 OK LIST completed\r\n* 1 EXISTS\r\na3 OK EXAMINE completed\r\n* 1 FETCH (BODY[] {{{}}}\r\n{})\r\na4 OK FETCH completed\r\na5 NO read access denied\r\n",
+            raw.len(),
+            String::from_utf8_lossy(raw)
+        );
+        let written = Arc::new(Mutex::new(Vec::new()));
+        let stream = ScriptedImap {
+            responses: io::Cursor::new(script.into_bytes()),
+            written: written.clone(),
+        };
+        let mut client = imap::Client::new(stream);
+        client.read_greeting().expect("server greeting");
+        let mut session = client
+            .login("person@example.test", "not-persisted")
+            .expect("login succeeds");
+        let import = download_session(&mut session);
+        let commands = String::from_utf8(written.lock().expect("write log lock").clone())
+            .expect("IMAP commands are ASCII");
+        assert!(commands.contains("EXAMINE \"INBOX\""), "{commands}");
+        assert!(commands.contains("EXAMINE \"Locked\""), "{commands}");
+        assert!(commands.contains("FETCH 1:* BODY.PEEK[]"), "{commands}");
+        assert!(!commands.contains("SELECT"));
+        let result = import.unwrap_or_else(|error| panic!("{error}; commands: {commands}"));
+        assert_eq!(result.messages.len(), 1);
+        assert_eq!(result.messages[0].raw, raw);
+        assert_eq!(result.folder_counts[0].expected, 1);
+        assert!(result
+            .folder_issues
+            .iter()
+            .any(|issue| issue.folder == "Locked"
+                && issue.detail.contains("Could not open folder read-only")));
+    }
 }

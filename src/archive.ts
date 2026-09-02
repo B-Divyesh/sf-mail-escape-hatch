@@ -39,12 +39,62 @@ function percentBytes(value: string): Uint8Array {
   return Uint8Array.from(output);
 }
 
+function headerParams(header: string): Map<string, string> {
+  const params = new Map<string, string>();
+  let index = header.indexOf(';') + 1;
+  while (index > 0 && index < header.length) {
+    while (/[\s;]/.test(header[index] || '')) index += 1;
+    const keyStart = index;
+    while (index < header.length && header[index] !== '=' && header[index] !== ';') index += 1;
+    const key = header.slice(keyStart, index).trim().toLowerCase();
+    if (!key || header[index] !== '=') { index += 1; continue; }
+    index += 1;
+    while (/\s/.test(header[index] || '')) index += 1;
+    let value = '';
+    if (header[index] === '"') {
+      index += 1;
+      while (index < header.length) {
+        if (header[index] === '"') { index += 1; break; }
+        if (header[index] === '\\' && index + 1 < header.length) index += 1;
+        value += header[index] || ''; index += 1;
+      }
+    } else {
+      const end = header.indexOf(';', index);
+      value = header.slice(index, end < 0 ? header.length : end).trim();
+      index = end < 0 ? header.length : end;
+    }
+    params.set(key, value);
+  }
+  return params;
+}
+
+function decodeExtendedParam(value: string, charset = 'utf-8'): string | undefined {
+  try { return new TextDecoder(charset, { fatal: true }).decode(percentBytes(value)); } catch { return undefined; }
+}
+
+/** Reads ordinary, RFC 2231 extended, and RFC 2231 continued parameters. */
 function headerParam(header: string, key: string): string | undefined {
-  const match = new RegExp(`(?:^|;)\\s*${key}(\\*)?\\s*=\\s*(?:"([^"]*)"|([^;\\s]*))`, 'i').exec(header);
-  if (!match) return undefined;
-  const value = (match[2] ?? match[3] ?? '').trim();
-  if (!match[1]) return value;
-  try { return new TextDecoder('utf-8', { fatal: true }).decode(percentBytes(value.replace(/^([^']*)'[^']*'/, ''))); } catch { return undefined; }
+  const params = headerParams(header); const bare = key.toLowerCase();
+  const continued: Array<{ value: string; encoded: boolean }> = [];
+  for (let segment = 0; ; segment += 1) {
+    const encodedValue = params.get(`${bare}*${segment}*`);
+    const plainValue = params.get(`${bare}*${segment}`);
+    if (encodedValue === undefined && plainValue === undefined) break;
+    continued.push({ value: encodedValue ?? plainValue ?? '', encoded: encodedValue !== undefined });
+  }
+  if (continued.length) {
+    const first = continued[0];
+    const match = /^([^']*)'[^']*'(.*)$/s.exec(first.value);
+    const charset = first.encoded && match ? match[1] || 'utf-8' : 'utf-8';
+    const joined = continued.map((segment, index) => index === 0 && match ? match[2] : segment.value).join('');
+    return continued.some((segment) => segment.encoded) ? decodeExtendedParam(joined, charset) : joined;
+  }
+  const extended = params.get(`${bare}*`);
+  if (extended !== undefined) {
+    const match = /^([^']*)'[^']*'(.*)$/s.exec(extended);
+    return decodeExtendedParam(match ? match[2] : extended, match?.[1] || 'utf-8');
+  }
+  return params.get(bare);
 }
 
 function decodeBase64(value: Uint8Array): Uint8Array | undefined {
@@ -90,9 +140,13 @@ function splitMultipart(bytes: Uint8Array, boundary: string): Uint8Array[] {
 async function inspectPart(bytes: Uint8Array, attachments: AttachmentRecord[], issues: string[]): Promise<void> {
   const headers = parseHeaders(bytes); const contentType = headers['content-type'] || ''; const boundary = headerParam(contentType, 'boundary');
   if (/^multipart\//i.test(contentType) && boundary) { for (const part of splitMultipart(bodyBytes(bytes), boundary)) await inspectPart(part, attachments, issues); return; }
-  const disposition = headers['content-disposition'] || ''; const name = headerParam(disposition, 'filename') || headerParam(contentType, 'name');
+  const disposition = headers['content-disposition'] || ''; const mediaType = contentType.split(';')[0].trim() || 'application/octet-stream';
+  const named = headerParam(disposition, 'filename') || headerParam(contentType, 'name');
+  // A filename is optional in MIME. Content-Disposition: attachment is enough to
+  // make this a file that must be retained and counted in the archive.
+  const name = named || (/\battachment\b/i.test(disposition) ? `attachment-${attachments.length + 1}.${mediaType.split('/')[1] || 'bin'}` : undefined);
   if (!name) return;
-  const content = decodeTransfer(bodyBytes(bytes), headers['content-transfer-encoding'] || ''); const mediaType = contentType.split(';')[0].trim() || 'application/octet-stream';
+  const content = decodeTransfer(bodyBytes(bytes), headers['content-transfer-encoding'] || '');
   if (!content) { const detail = `Attachment “${name}” was not exported because its ${headers['content-transfer-encoding'] || 'unknown'} encoding is invalid or unsupported.`; issues.push(detail); attachments.push({ name, mediaType, size: 0, hash: '', error: detail }); return; }
   attachments.push({ name, mediaType, size: content.length, hash: await sha256(content), content });
 }

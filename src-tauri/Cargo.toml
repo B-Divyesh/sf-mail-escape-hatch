@@ -1,6 +1,6 @@
 [package]
 name = "mail-escape-hatch"
-version = "0.1.0"
+version = "0.1.1"
 description = "Verify and export portable local mail archives"
 authors = ["Param Factory"]
 license = "MIT"

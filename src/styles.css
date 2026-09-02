@@ -6,3 +6,4 @@
 .source-status{min-height:28px;color:var(--coral);font-weight:700}.toast{position:fixed;z-index:100;right:20px;bottom:20px;max-width:min(420px,calc(100% - 40px));padding:14px 18px;border-left:4px solid var(--cyan);background:var(--paper);color:var(--ink-0);box-shadow:0 12px 48px #000}
 .how figure{margin:0}.how img{display:block;width:calc(100% + 48px);height:140px;margin:-24px -24px 22px;object-fit:cover;object-position:top;border-bottom:1px solid var(--line)}
 .check-row{animation:verify-in .18s ease both}.check-row:nth-of-type(2){animation-delay:.08s}.check-row:nth-of-type(3){animation-delay:.16s}.check-row:nth-of-type(4){animation-delay:.24s}@keyframes verify-in{from{opacity:.25;transform:translateX(-8px)}to{opacity:1;transform:none}}
+.wordmark{min-height:44px}.mark{width:44px;height:44px}.nav-links a{min-width:44px;justify-content:center}.table-scroll:focus-visible{outline:3px solid var(--amber);outline-offset:-3px}

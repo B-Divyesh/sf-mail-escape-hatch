@@ -2,7 +2,7 @@
 
 Mail Escape Hatch is a local desktop tool for people leaving or auditing an email provider. It imports IMAP, Maildir, MBOX, and EML mail, checks messages and attachments, then saves a portable archive.
 
-The archive is a ZIP with a standalone HTML reader that links to original EML files and extracted attachments, `manifest.json`, and SHA-256 hashes. It preserves the original source bytes in every exported EML.
+The archive is a ZIP with a standalone HTML reader that links to original EML files and extracted attachments, `manifest.json`, and SHA-256 hashes. It preserves the original source bytes in every exported EML, including valid unnamed attachments and RFC 2231 continued filenames.
 
 ## Try the sample
 
