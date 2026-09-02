@@ -5,6 +5,8 @@ describe('static delivery', () => {
   it('@claim:true-404 rewrites unknown static routes to the real 404 document', () => {
     const config = JSON.parse(readFileSync('public/staticwebapp.config.json', 'utf8'));
     expect(config.responseOverrides['404']).toEqual({ rewrite: '/404.html' });
+    expect(config.navigationFallback).toBeUndefined();
+    expect(config.routes.map((route: { route: string }) => route.route)).toEqual(expect.arrayContaining(['/demo', '/app', '/privacy', '/terms']));
     expect(readFileSync('public/404.html', 'utf8')).toContain('<h1>');
   });
 
