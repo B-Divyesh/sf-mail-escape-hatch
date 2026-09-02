@@ -1,44 +1,38 @@
-# Mail Escape Hatch repair handoff
+# Mail Escape Hatch verification handoff
 
-## Repair delivered
+## Result: FAIL
 
-- Preserved every imported RFC 822 message as exact `Uint8Array` source bytes. Hashes and exported `eml/` files now use those bytes directly; no UTF-8 round trip occurs.
-- Added MIME handling for multipart parts, RFC 2231 `filename*=`, quoted-printable attachments, and base64 attachments. Invalid or unsupported attachment encoding creates a visible archive anomaly and is never exported as an empty verified file.
-- Made the portable reader link to each original EML and each exported attachment. `manifest.json` now records `emlPath`, attachment `archivePath`, and decode errors.
-- IMAP now opens folders with read-only `EXAMINE`, fetches with `BODY.PEEK[]`, keeps byte arrays intact, and returns folder-open/read failures to the report.
-- Rejected empty or headerless EML files, increased demo/header/footer targets to at least 44 px, retained the static-host 404 override, and removed unavailable checkout, licensing, and keychain promises.
-- Registered material claims in `.factory/claims.json`, including byte preservation, MIME failures, IMAP read-only behavior, folder errors, installer checksum verification, mobile targets, and static 404 delivery.
+Independent verification of candidate `f539e23cb9b200976701fde8dd22cc6094a58165` at `https://mail-escape-hatch.sociobot.in` completed on 2026-09-02 UTC. Do not release or direct users to the current desktop downloads.
 
-## Exact regression evidence
+The first-read demo gate passes, all 17 declared claim commands pass after clean dependency installation, the full unit/E2E/Rust suites pass, the site and candidate desktop `.deb` build, and the live static files exactly match the candidate. The release still fails the product contract for two critical reasons:
 
-`@claim:source-bytes` imports an ISO-8859-1 8bit EML whose final byte is `0xe9`, exports it, and compares the exported EML SHA-256 to the source SHA-256. It passes with byte-for-byte equality.
+1. The live download installs `v0.1.0`, built by GitHub Actions from `96436b5…` before the preservation repairs. The published binary contains `1:*RFC822`; the candidate binary contains `1:*BODY.PEEK[]`. The currently published desktop app is the known-bad pre-repair build.
+2. Candidate and live code silently omit valid MIME attachments without filenames and RFC 2231 continued filenames. A live import showed **All checks passed** with `0 attachments` and no anomaly.
 
-`@claim:mime-attachments` verifies RFC 2231 `filename*=UTF-8''report%20final.pdf`, quoted-printable `caf=C3=A9` → `café`, manifest archive paths, and standalone-reader links. `@claim:invalid-attachments` proves malformed base64 is shown as an anomaly and produces no attachment file.
+Additional blockers: an old service worker remains pinned to the pre-repair app after online and offline update attempts; axe finds a serious keyboard-inaccessible horizontal report region at 390 px; the live 404 violates its CSP; **Choose different mail** opens demo data rather than the picker; and important password/IMAP claims lack observable end-to-end tests.
 
-## Verification run
+See `.factory/verification-2.md` for commands, hashes, browser evidence, performance results, and the complete severity list.
 
-Run from a clean checkout:
+## Verification summary
 
-```sh
-npm ci
-npm test
-npx tsc --noEmit
-npm run build
-npm audit --audit-level=high
-cargo test --locked --manifest-path src-tauri/Cargo.toml
-```
+- `npm ci`: PASS, zero audit findings.
+- Every command in `.factory/claims.json`: PASS after install (17/17).
+- `npm test`: PASS (11 unit, 6 Playwright).
+- `npx tsc --noEmit`: PASS.
+- `npm run build`: PASS; output in `dist/site/`.
+- `cargo test --locked --manifest-path src-tauri/Cargo.toml`: PASS (3 tests).
+- `CI=true npm run tauri build -- --bundles deb`: PASS.
+- `cargo fmt --check`: FAIL.
+- strict Clippy: FAIL on `items_after_test_module`.
+- Stable Lighthouse mobile: 97 Performance, 100 Accessibility, 100 Best Practices, 100 SEO; LCP 1.9 s, CLS 0, TBT 170 ms.
+- No product backend, unlock endpoint, or sign-in exists; rate-limit and Entra checks are not applicable.
 
-Completed locally on 2026-09-02:
+## Required before re-verification
 
-- `npm test`: 11 unit assertions and 6 Playwright assertions passed, including archive export, keyboard/a11y route checks, offline reload, 390 px layout, and 44 px demo controls.
-- `npx tsc --noEmit`, `npm run build`, `npm audit --audit-level=high`, and `git diff --check`: passed.
-- Production site build: main JavaScript 15.65 KB gzip; CSS 3.97 KB gzip.
-- `cargo test --locked --manifest-path src-tauri/Cargo.toml`: 3 Rust tests passed. Cargo reports the pre-existing `imap-proto 0.10.2` future-incompatibility warning.
-- Every claims command was executed after the full suites; all passed.
+- Fix valid MIME attachment omission and add representative claim tests.
+- Publish a new desktop release from the repaired commit and update the live download.
+- Version and verify the service-worker upgrade path.
+- Clear the accessibility, CSP, and workflow defects documented in `verification-2.md`.
+- Add real IMAP behavior coverage and make formatting/Clippy clean.
 
-## Deployment and operator notes
-
-- Static output is `dist/site/`. The deployment uses `public/staticwebapp.config.json` (copied to that output), with a real host-level `404` response override.
-- Deployed on 2026-09-02 to `https://mail-escape-hatch.sociobot.in` (SWA deployment `5e4e52fd-5354-42a0-af9b-edf2a412e212`). Live checks: `/` 200, `/demo` 200, and `/missing-route` 404 with the designed standalone 404 page.
-- Desktop release workflow remains Tauri 2 and builds unsigned macOS, Windows, and Linux artifacts. Signing certificates remain the only optional operator addition.
-- No checkout is exposed because the production billing product is unavailable. The core archive tool is fully available without it.
+No product code, infrastructure, DNS, billing, or external service settings were modified during verification.
