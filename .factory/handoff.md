@@ -58,6 +58,12 @@ AppImage/DEB/RPM, `SHA256SUMS`, and valid `latest.json` (macOS 4 assets,
 Windows 2, Linux 3). The published Linux DEB checksum is
 `a473dd2aa1645829e85bb5846230f1557305c9a177cbae6c8896a8cc45b6186a`.
 
+Production deployment was published through the permitted
+`sf-mail-escape-hatch` Static Web App on 2026-09-02. Live checks found
+`mail-escape-hatch-v2` as the only service-worker cache, the 404 response has
+the expected CSP without an inline-style violation, no home-page console errors,
+and the detected Linux download links to the `v0.1.1` AppImage.
+
 ## Known limits / operator action
 
 Desktop builds are intentionally unsigned. macOS notarization and Windows
