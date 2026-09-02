@@ -68,10 +68,11 @@ jobs:
         run: gh release download "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" --dir release
       - name: Build manifests
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPOSITORY: ${{ github.repository }}
           VERSION: ${{ env.RELEASE_TAG }}
         run: |
           cd release
           sha256sum * > SHA256SUMS
-          python3 -c 'import glob,json,os; repo=os.environ.get("REPOSITORY"); version=os.environ.get("VERSION"); names=[os.path.basename(x) for x in glob.glob("*") if os.path.basename(x) not in ("SHA256SUMS","latest.json")]; base="https://github.com/"+repo+"/releases/download/"+version+"/"; json.dump({"version":version,"assets":[{"name":n,"url":base+n} for n in names]},open("latest.json","w"),indent=2)'
+          python3 -c 'import glob,json,os; repo=os.environ.get("REPOSITORY"); version=os.environ.get("VERSION"); names=[os.path.basename(x) for x in glob.glob("*") if os.path.basename(x) not in ("SHA256SUMS","latest.json")]; base="https://github.com/"+repo+"/releases/download/"+version+"/"; group=lambda suffixes:[{"name":n,"url":base+n} for n in names if n.lower().endswith(suffixes)]; json.dump({"version":version,"platforms":{"macos":group((".dmg",".app.tar.gz")),"windows":group((".msi",".exe",".zip")),"linux":group((".appimage",".deb",".rpm"))}},open("latest.json","w"),indent=2)'
           gh release upload "${VERSION}" SHA256SUMS latest.json --repo "${REPOSITORY}" --clobber
