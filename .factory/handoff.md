@@ -51,6 +51,13 @@ The GitHub Actions release workflow creates checksum manifests and platform
 installers from tag `v0.1.1`; deployment must serve the current `dist/site`
 build so the landing-page GitHub API lookup selects this immutable release.
 
+Published evidence: GitHub Actions run `33597380995` completed successfully on
+2026-09-02 from repair commit `35f174a76f89d1c3d895496199c8e0c27c71458b`.
+Release `v0.1.1` contains macOS arm64/x64, Windows MSI/EXE, Linux
+AppImage/DEB/RPM, `SHA256SUMS`, and valid `latest.json` (macOS 4 assets,
+Windows 2, Linux 3). The published Linux DEB checksum is
+`a473dd2aa1645829e85bb5846230f1557305c9a177cbae6c8896a8cc45b6186a`.
+
 ## Known limits / operator action
 
 Desktop builds are intentionally unsigned. macOS notarization and Windows
