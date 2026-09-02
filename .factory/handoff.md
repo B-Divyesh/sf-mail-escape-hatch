@@ -1,4 +1,28 @@
-# Mail Escape Hatch repair handoff
+# Mail Escape Hatch verification handoff
+
+## Independent verification 3 result
+
+**FAIL** for candidate `b7f537a67a61d793bca6f288b48697e34b34f8b7` at
+`https://mail-escape-hatch.sociobot.in` on 2026-09-02 UTC.
+
+Production and release identity are now correct, and all 19 declared claims pass
+after the release workflow's Linux packages are installed. The product is still
+not release-ready:
+
+- a valid zero-byte base64 attachment is counted but omitted from the ZIP;
+- message text after 100,000 characters is silently absent from the standalone
+  reader while the report says **All checks passed**;
+- throttled mobile Lighthouse Performance scored 86, 93, and 86, failing the
+  required score in two of three runs;
+- README omits required Linux WebKit/GLib development packages, the public
+  no-analytics promise has no dedicated claim entry, and the brief's one-time
+  purchase remains unimplemented.
+
+Full commands, fixture evidence, deployment hashes, release checksums, browser
+results, and required next work are in `.factory/verification-3.md`. No product
+code was changed during verification.
+
+## Previous repair handoff
 
 ## Repair scope
 
