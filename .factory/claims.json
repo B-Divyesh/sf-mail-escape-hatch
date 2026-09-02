@@ -1,65 +1,19 @@
 [
-  {
-    "id": "sample-sandbox",
-    "claim": "Demo — sample data, nothing is saved",
-    "where": "demo banner",
-    "test": "npx playwright test --grep @claim:sample-sandbox",
-    "sandbox": "fresh browser context at /demo; assert sample counts and no demo storage keys"
-  },
-  {
-    "id": "no-account",
-    "claim": "Works without an account",
-    "where": "landing facts",
-    "test": "npx playwright test --grep @claim:no-account",
-    "sandbox": "fresh browser context at /demo with no cookies or stored identity; assert the complete report is ready"
-  },
-  {
-    "id": "portable-archive",
-    "claim": "Saves HTML, original EML files, hashes, and a JSON manifest in one ZIP",
-    "where": "How it works, README, export result",
-    "test": "npx playwright test --grep @claim:portable-archive",
-    "sandbox": "sample archive; download ZIP and inspect its files, counts, and SHA-256 values"
-  },
-  {
-    "id": "mbox-import",
-    "claim": "Imports MBOX and counts messages and attachments",
-    "where": "How it works, README, source picker",
-    "test": "npx playwright test --grep @claim:mbox-import",
-    "sandbox": "synthetic MBOX in the demo; assert four messages and two extracted attachments in the exported ZIP"
-  },
-  {
-    "id": "maildir-import",
-    "claim": "Imports Maildir folders and preserves their names",
-    "where": "How it works, README, source picker",
-    "test": "npx vitest run -t @claim:maildir-import",
-    "sandbox": "synthetic EML file with a Maildir cur path; assert source type and folder name"
-  },
-  {
-    "id": "duplicate-check",
-    "claim": "Flags duplicate messages",
-    "where": "How it works, README",
-    "test": "npx vitest run -t @claim:duplicate-check",
-    "sandbox": "two synthetic EML files with one Message-ID; assert a duplicate issue in the report model"
-  },
-  {
-    "id": "local-only",
-    "claim": "Mail stays on this computer",
-    "where": "landing facts and privacy page",
-    "test": "npx playwright test --grep @claim:local-only",
-    "sandbox": "fresh browser context at /demo; record requests throughout export and assert same-origin only"
-  },
-  {
-    "id": "offline-reload",
-    "claim": "The demo works offline after its first visit",
-    "where": "README",
-    "test": "npx playwright test --grep @claim:offline-reload",
-    "sandbox": "fresh browser context; load /demo, wait for service worker, go offline, reload, and assert report"
-  },
-  {
-    "id": "paid-history",
-    "claim": "A $19 license saves export receipts on this computer",
-    "where": "pricing, workspace, README, terms",
-    "test": "npx playwright test --grep @claim:paid-history",
-    "sandbox": "fresh browser context with a cached fixture license verdict; import one EML, export it, and assert the local receipt"
-  }
+  {"id":"sample-sandbox","claim":"Demo — sample data, nothing is saved","where":"demo banner","test":"npx playwright test --grep @claim:sample-sandbox","sandbox":"fresh browser context at /demo; assert sample counts and no demo storage keys"},
+  {"id":"no-account","claim":"Works without an account","where":"landing facts","test":"npx playwright test --grep @claim:no-account","sandbox":"fresh browser context at /demo with no cookies or stored identity; assert the complete report is ready"},
+  {"id":"portable-archive","claim":"Saves a standalone reader, linked original EML files, hashes, and a JSON manifest in one ZIP","where":"How it works, README, export result","test":"npx playwright test --grep @claim:portable-archive","sandbox":"sample archive; download ZIP and inspect reader links, archive paths, counts, and hashes"},
+  {"id":"mbox-import","claim":"Imports MBOX and counts messages and attachments","where":"How it works, README, source picker","test":"npx playwright test --grep @claim:mbox-import","sandbox":"synthetic MBOX in the demo; assert four messages and two extracted attachments in the exported ZIP"},
+  {"id":"maildir-import","claim":"Imports Maildir folders and preserves their names","where":"How it works, README, source picker","test":"npx vitest run -t @claim:maildir-import","sandbox":"synthetic EML file with a Maildir cur path; assert source type and folder name"},
+  {"id":"duplicate-check","claim":"Flags duplicate messages","where":"How it works, README","test":"npx vitest run -t @claim:duplicate-check","sandbox":"two synthetic EML files with one Message-ID; assert a duplicate issue in the report model"},
+  {"id":"local-only","claim":"Mail stays on this computer","where":"landing facts and privacy page","test":"npx playwright test --grep @claim:local-only","sandbox":"fresh browser context at /demo; record requests throughout export and assert same-origin only"},
+  {"id":"offline-reload","claim":"The demo works offline after its first visit","where":"README","test":"npx playwright test --grep @claim:offline-reload","sandbox":"fresh browser context; load /demo, wait for service worker, go offline, reload, and assert report"},
+  {"id":"source-bytes","claim":"Exports original EML bytes","where":"landing facts, README","test":"npx vitest run -t @claim:source-bytes","sandbox":"ISO-8859-1 8bit EML ending in 0xe9; compare source and exported EML SHA-256"},
+  {"id":"mime-attachments","claim":"Exports RFC 2231 and quoted-printable attachments","where":"README","test":"npx vitest run -t :mime-attachments","sandbox":"multipart fixture; assert decoded filename, bytes, manifest path, and reader link"},
+  {"id":"invalid-attachments","claim":"Reports malformed attachment encoding instead of silently exporting it","where":"portable archive README","test":"npx vitest run -t :invalid-attachments","sandbox":"invalid base64 fixture; assert anomaly and no attachment file"},
+  {"id":"empty-eml","claim":"Rejects empty EML files","where":"import error","test":"npx vitest run -t :empty-eml","sandbox":"empty .eml File; assert a clear rejection"},
+  {"id":"imap-read-only","claim":"IMAP opens folders read-only and does not mark messages seen","where":"privacy page, IMAP form, README","test":"cargo test --locked --manifest-path src-tauri/Cargo.toml imap_import_uses_a_non_seen_setting_fetch_item","sandbox":"Rust command test asserts BODY.PEEK[] read-only fetch contract"},
+  {"id":"folder-errors","claim":"IMAP reports folders it cannot open","where":"README","test":"cargo test --locked --manifest-path src-tauri/Cargo.toml folder_errors_are_serializable_and_never_disappear","sandbox":"Rust command test asserts folder error payload remains visible to the webview"},
+  {"id":"mobile-targets","claim":"Demo controls are at least 44 pixels tall","where":"demo banner","test":"npx playwright test --grep @claim:mobile-targets","sandbox":"390px browser; measure both demo controls"},
+  {"id":"installer-checksums","claim":"One-line installers verify SHA-256 checksums","where":"README install section","test":"npx vitest run -t :installer-checksums","sandbox":"read shipped POSIX and PowerShell installers; assert both perform SHA-256 verification before install"},
+  {"id":"true-404","claim":"Unknown static routes return the designed 404 page","where":"deployment configuration","test":"npx vitest run -t @claim:true-404","sandbox":"assert static host response override rewrites only 404 responses to public/404.html"}
 ]

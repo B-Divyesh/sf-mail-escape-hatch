@@ -24,6 +24,10 @@ test('@claim:portable-archive @claim:mbox-import imports MBOX and exports HTML, 
   const manifest = JSON.parse(strFromU8(files['manifest.json']));
   expect(manifest.counts).toEqual({ folders: 1, messages: 4, attachments: 2 });
   expect(manifest.messages.every((message: { hash: string }) => /^[a-f0-9]{64}$/.test(message.hash))).toBe(true);
+  expect(manifest.messages[0]).toMatchObject({ emlPath: 'eml/00001.eml' });
+  expect(manifest.messages[0].attachments[0]).toMatchObject({ archivePath: 'attachments/00001/01-tickets.pdf' });
+  expect(strFromU8(files['index.html'])).toContain('Open original EML');
+  expect(strFromU8(files['index.html'])).toContain('attachments/00001/01-tickets.pdf');
 });
 
 test('@claim:local-only demo sends no archive data off origin', async ({ browser, baseURL }) => {
@@ -50,24 +54,6 @@ test('@claim:offline-reload demo reloads after the first visit without a network
   await context.close();
 });
 
-test('@claim:paid-history licensed exports save local receipts', async ({ page }) => {
-  await page.addInitScript(() => {
-    localStorage.setItem('sb_license:mail-escape-hatch', 'test-license');
-    localStorage.setItem('sb_license:mail-escape-hatch:verdict', JSON.stringify({ valid: true, checkedAt: Date.now() }));
-  });
-  await page.goto('/app');
-  await page.locator('[data-file-input]').setInputFiles({
-    name: 'receipt.eml', mimeType: 'message/rfc822', buffer: Buffer.from('Message-ID: <receipt@test>\nDate: Tue, 18 Aug 2026 09:14:00 +0000\nFrom: One <one@test>\nSubject: Receipt sample\nContent-Type: text/plain\n\nSaved.')
-  });
-  await expect(page.getByRole('heading', { name: 'Verification report' })).toBeVisible();
-  const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Save portable archive' }).first().click();
-  await downloadPromise;
-  const history = await page.evaluate(() => JSON.parse(localStorage.getItem('archive-history:mail-escape-hatch') || '[]'));
-  expect(history).toHaveLength(1);
-  expect(history[0]).toMatchObject({ source: 'receipt.eml', messages: 1, attachments: 0 });
-});
-
 test('all public routes have landmarks, one h1, and no serious accessibility findings', async ({ page }) => {
   for (const route of ['/', '/demo', '/privacy', '/terms', '/missing-route']) {
     const errors: string[] = [];
@@ -83,12 +69,13 @@ test('all public routes have landmarks, one h1, and no serious accessibility fin
   }
 });
 
-test('@mobile landing and demo fit a 390px screen', async ({ page }) => {
+test('@claim:mobile-targets landing and demo fit a 390px screen with 44px controls', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Verify mail before you leave' })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   await page.getByRole('link', { name: 'Try it with sample data' }).click();
   await expect(page.getByText('Demo — sample data, nothing is saved')).toBeVisible();
+  for (const name of ['Reset demo', 'Start for real']) expect(await page.getByRole('button', { name }).evaluate((button) => button.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });

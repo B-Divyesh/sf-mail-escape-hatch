@@ -5,7 +5,8 @@ export interface AttachmentRecord {
   mediaType: string;
   size: number;
   hash: string;
-  content: Uint8Array;
+  content?: Uint8Array;
+  error?: string;
 }
 
 export interface MessageRecord {
@@ -17,9 +18,11 @@ export interface MessageRecord {
   date: string;
   headers: Record<string, string>;
   body: string;
-  raw: string;
+  /** Exact RFC 822 source bytes. Never decode/re-encode these for export or hashing. */
+  raw: Uint8Array;
   hash: string;
   attachments: AttachmentRecord[];
+  issues: string[];
 }
 
 export interface ArchiveResult {

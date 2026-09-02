@@ -2,7 +2,7 @@
 
 Mail Escape Hatch is a local desktop tool for people leaving or auditing an email provider. It imports IMAP, Maildir, MBOX, and EML mail, checks messages and attachments, then saves a portable archive.
 
-The archive is a ZIP with a standalone HTML reader, original EML files, extracted attachments, `manifest.json`, and SHA-256 hashes. The app checks and exports supported archives for free. A $19 one-time license saves export receipts on this computer.
+The archive is a ZIP with a standalone HTML reader that links to original EML files and extracted attachments, `manifest.json`, and SHA-256 hashes. It preserves the original source bytes in every exported EML.
 
 ## Try the sample
 
@@ -53,17 +53,17 @@ irm https://mail-escape-hatch.sociobot.in/install.ps1 | iex
 
 - Mail files and generated archives stay on the computer.
 - IMAP connects directly from the desktop app to the chosen provider.
-- Saved IMAP passwords use the operating system keychain.
+- IMAP opens folders read-only and uses `BODY.PEEK[]`, so it does not mark messages seen.
+- IMAP passwords are used for the connection and are not stored.
 - The demo uses memory and never reads real files.
-- License checks send only the license token to Sociobot.
 
 Keep the source mailbox until the report and portable reader match your expected counts. Providers may exclude Spam or Trash, throttle downloads, or require an app password. See [Privacy](https://mail-escape-hatch.sociobot.in/privacy) and [Terms](https://mail-escape-hatch.sociobot.in/terms).
 
 ### IMAP rate limits
 
-The app opens one connection and reads one folder at a time. It does not run parallel downloads. A provider can still pause or reject a large fetch. If that happens, wait for the provider’s stated retry period and run the import again. Gmail and Microsoft accounts may require an app password or a provider export because this v1 does not embed their OAuth consent flows.
+A provider can still pause or reject a large fetch. If that happens, wait for the provider’s stated retry period and run the import again. Gmail and Microsoft accounts may require an app password or a provider export because this v1 does not embed their OAuth consent flows.
 
-The report compares each IMAP folder’s server count with the number downloaded. It preserves the original RFC 822 headers and message body for audit or legal-hold use.
+The report compares each IMAP folder’s server count with the number downloaded and shows any folder that could not be opened or read. It preserves original RFC 822 bytes for audit or legal-hold use.
 
 ## Deploy
 

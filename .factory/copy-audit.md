@@ -11,7 +11,7 @@ Audited 2026-09-02. Counts treat hyphenated terms and numbers as one word. Headi
 | See four checked messages now. | 5 |
 | Mail stays on this computer | 5 |
 | Works without an account | 4 |
-| $19 once for saved history | 5 |
+| Exports original EML bytes | 4 |
 | Messages enter on the left. | 5 |
 | Verified copies remain readable on the right. | 7 |
 | Folder counts | 2 |
@@ -31,16 +31,9 @@ Audited 2026-09-02. Counts treat hyphenated terms and numbers as one word. Headi
 | The app reads sources on your computer. | 7 |
 | IMAP connects from your computer to your provider. | 8 |
 | It does not send messages, migrate accounts, or upload your archive. | 11 |
-| IMAP passwords can be stored in your operating system keychain. | 10 |
+| IMAP folders are opened read-only. | 5 |
+| Passwords are used for the connection and are not stored. | 10 |
 | Exported archives are not encrypted unless you encrypt their destination. | 10 |
-| One-time license | 2 |
-| Keep your verification history | 4 |
-| The app checks and exports supported archives for free. | 9 |
-| A license saves export receipts on this computer. | 8 |
-| Buy a license | 3 |
-| Restore a license | 3 |
-| Sociobot is the merchant of record. | 6 |
-| Refunds revoke the license. | 4 |
 | Desktop app | 2 |
 | Download for your computer | 4 |
 | Builds are unsigned until the release signing certificates are added. | 10 |
@@ -63,7 +56,6 @@ Audited 2026-09-02. Counts treat hyphenated terms and numbers as one word. Headi
 | Source folder format | Maildir |
 | Provider protocol | IMAP |
 | Integrity digest | SHA-256 hash |
-| Paid entitlement | license |
 | Verification problem | issue |
 
 Catalog description: “Verify email exports and keep a portable local archive with every message, attachment, and hash.” It starts with a verb and is 95 characters.
