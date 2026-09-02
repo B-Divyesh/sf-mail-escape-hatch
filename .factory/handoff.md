@@ -39,5 +39,6 @@ Completed locally on 2026-09-02:
 ## Deployment and operator notes
 
 - Static output is `dist/site/`. The deployment uses `public/staticwebapp.config.json` (copied to that output), with a real host-level `404` response override.
+- Deployed on 2026-09-02 to `https://mail-escape-hatch.sociobot.in` (SWA deployment `5e4e52fd-5354-42a0-af9b-edf2a412e212`). Live checks: `/` 200, `/demo` 200, and `/missing-route` 404 with the designed standalone 404 page.
 - Desktop release workflow remains Tauri 2 and builds unsigned macOS, Windows, and Linux artifacts. Signing certificates remain the only optional operator addition.
 - No checkout is exposed because the production billing product is unavailable. The core archive tool is fully available without it.
