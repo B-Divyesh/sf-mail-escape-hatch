@@ -22,7 +22,7 @@ const routeInfo: Record<string, { title: string; description: string }> = {
 function header(): string {
   return `<header class="site-header">
     <nav aria-label="Main navigation" class="nav-wrap">
-      <a class="wordmark" href="/" data-link><span class="mark" aria-hidden="true">ME</span><span>Mail Escape Hatch</span></a>
+      <a class="wordmark" href="/" data-link aria-label="Mail Escape Hatch home"><span class="mark" aria-hidden="true">ME</span><span>Mail Escape Hatch</span></a>
       <div class="nav-links"><a href="/demo" data-link>Demo</a><a href="#how" data-home-link>How it works</a><a href="#pricing" data-home-link>Price</a><a href="/privacy" data-link>Privacy</a></div>
     </nav>
   </header>`;
@@ -46,7 +46,7 @@ function landing(): string {
     </section>
     <section class="proof-strip" aria-label="Archive checks"><span>Folder counts</span><span>Message hashes</span><span>Attachment checks</span><span>Original headers</span></section>
     <section class="live-preview" aria-labelledby="preview-title"><div class="section-heading"><p class="eyebrow">Product preview</p><h2 id="preview-title">See every check in one ledger</h2><p>The archive report keeps counts, issues, and SHA-256 hashes together.</p></div>${ledgerPreview()}</section>
-    <section id="how" class="how" aria-labelledby="how-title"><p class="eyebrow">How it works</p><h2 id="how-title">Make an archive in three steps</h2><ol><li><strong>1 · Choose mail</strong><p>Open an MBOX file, a Maildir folder, or connect to IMAP.</p></li><li><strong>2 · Check the copy</strong><p>Compare folder, message, and attachment counts. Review duplicates and missing dates.</p></li><li><strong>3 · Keep the archive</strong><p>Save HTML, original EML files, hashes, and a JSON manifest in one ZIP.</p></li></ol></section>
+    <section id="how" class="how" aria-labelledby="how-title"><p class="eyebrow">How it works</p><h2 id="how-title">Make an archive in three steps</h2><ol><li><figure><img src="/assets/walkthrough/01-choose.webp" width="1192" height="385" loading="lazy" alt="The source picker for MBOX, Maildir, and IMAP mail."><figcaption><strong>1 · Choose mail</strong><p>Open an MBOX file, a Maildir folder, or connect to IMAP.</p></figcaption></figure></li><li><figure><img src="/assets/walkthrough/02-check.webp" width="1192" height="420" loading="lazy" alt="A report comparing message and attachment counts."><figcaption><strong>2 · Check the copy</strong><p>Compare folder, message, and attachment counts. Review duplicates and missing dates.</p></figcaption></figure></li><li><figure><img src="/assets/walkthrough/03-export.webp" width="1192" height="420" loading="lazy" alt="The report table and portable archive action."><figcaption><strong>3 · Keep the archive</strong><p>Save HTML, original EML files, hashes, and a JSON manifest in one ZIP.</p></figcaption></figure></li></ol></section>
     <section class="boundaries" aria-labelledby="boundaries-title"><div><p class="eyebrow">Clear boundaries</p><h2 id="boundaries-title">Your mail does not become our mail</h2></div><div><p>The app reads sources on your computer. IMAP connects from your computer to your provider.</p><p>It does not send messages, migrate accounts, or upload your archive.</p><p>IMAP passwords can be stored in your operating system keychain. Exported archives are not encrypted unless you encrypt their destination.</p></div></section>
     <section id="pricing" class="pricing" aria-labelledby="price-title"><div><p class="eyebrow">One-time license</p><h2 id="price-title">Keep your verification history</h2><p class="price"><span>$19</span> once</p><p>The app checks and exports supported archives for free. A license saves export receipts on this computer.</p></div><div class="price-actions"><a class="button primary" href="${checkoutUrl}">Buy a license</a><button class="button secondary" type="button" data-restore>Restore a license</button><p>Sociobot is the merchant of record. Refunds revoke the license.</p></div></section>
     <section class="downloads" aria-labelledby="download-title"><p class="eyebrow">Desktop app</p><h2 id="download-title">Download for your computer</h2><p>Builds are unsigned until the release signing certificates are added.</p><div class="download-state" aria-live="polite"><span class="loader" aria-hidden="true"></span>Checking the latest release…</div></section>
@@ -54,7 +54,7 @@ function landing(): string {
 }
 
 function ledgerPreview(): string {
-  return `<div class="ledger" aria-label="Sample verification report"><div class="ledger-head"><span>SAMPLE PROVIDER EXPORT</span><span>CHECK COMPLETE</span></div><div class="totals"><div><strong>3</strong><span>folders</span></div><div><strong>4</strong><span>messages</span></div><div><strong>2</strong><span>attachments</span></div></div><div class="check-row ok"><span>✓</span><div><strong>Message content hashed</strong><small>4 of 4 records</small></div><code>SHA-256</code></div><div class="check-row warn"><span>◇</span><div><strong>Date header missing</strong><small>1 message needs review</small></div><code>REVIEW</code></div><div class="check-row ok"><span>✓</span><div><strong>Attachments accounted for</strong><small>2 files, 2 hashes</small></div><code>MATCH</code></div></div>`;
+  return `<div class="ledger" aria-label="Sample verification report"><div class="ledger-head"><span>SAMPLE PROVIDER EXPORT</span><span>CHECK COMPLETE</span></div><div class="totals"><div><strong>1</strong><span>folder</span></div><div><strong>4</strong><span>messages</span></div><div><strong>2</strong><span>attachments</span></div></div><div class="check-row ok"><span>✓</span><div><strong>Message content hashed</strong><small>4 of 4 records</small></div><code>SHA-256</code></div><div class="check-row warn"><span>◇</span><div><strong>Date header missing</strong><small>1 message needs review</small></div><code>REVIEW</code></div><div class="check-row ok"><span>✓</span><div><strong>Attachments accounted for</strong><small>2 files, 2 hashes</small></div><code>MATCH</code></div></div>`;
 }
 
 function restoreDialog(): string {
@@ -66,7 +66,7 @@ function workspace(): string {
 }
 
 function sourcePicker(): string {
-  return `<section class="source-picker" aria-labelledby="source-title"><h2 id="source-title">Choose a source</h2><div class="source-options"><label class="source-option"><span class="source-icon" aria-hidden="true">▤</span><strong>Open MBOX or EML</strong><span>Choose one or more exported files.</span><input type="file" data-file-input accept=".mbox,.mbx,.eml,message/rfc822,application/mbox" multiple></label><label class="source-option"><span class="source-icon" aria-hidden="true">▥</span><strong>Open Maildir folder</strong><span>Choose the folder that contains cur and new.</span><input type="file" data-dir-input multiple webkitdirectory></label><button class="source-option" type="button" data-imap-open><span class="source-icon" aria-hidden="true">⌁</span><strong>Connect to IMAP</strong><span>${isDesktop ? 'Download mail directly from your provider.' : 'Available in the desktop app.'}</span></button></div><p class="source-note">Nothing is changed at the source. Large imports may take several minutes.</p></section>${imapDialog()}`;
+  return `<section class="source-picker" aria-labelledby="source-title"><h2 id="source-title">Choose a source</h2><div class="source-options"><label class="source-option"><span class="source-icon" aria-hidden="true">▤</span><strong>Open MBOX or EML</strong><span>Choose one or more exported files.</span><input type="file" data-file-input accept=".mbox,.mbx,.eml,message/rfc822,application/mbox" multiple></label><label class="source-option"><span class="source-icon" aria-hidden="true">▥</span><strong>Open Maildir folder</strong><span>Choose the folder that contains cur and new.</span><input type="file" data-dir-input multiple webkitdirectory></label><button class="source-option" type="button" data-imap-open><span class="source-icon" aria-hidden="true">⌁</span><strong>Connect to IMAP</strong><span>${isDesktop ? 'Download mail directly from your provider.' : 'Available in the desktop app.'}</span></button></div><p class="source-note">Nothing is changed at the source. Large imports may take several minutes.</p><p id="source-status" class="source-status" role="status"></p></section>${imapDialog()}`;
 }
 
 function historyView(): string {
@@ -130,7 +130,9 @@ function bindActions(): void {
 
 async function handleFiles(files: File[], forcedType?: 'Maildir'): Promise<void> {
   const main = document.querySelector('main')!;
+  const status = document.querySelector<HTMLElement>('#source-status');
   main.setAttribute('aria-busy', 'true');
+  if (status) status.textContent = 'Reading messages and calculating hashes…';
   try { archive = await buildArchive(files, forcedType); demoMode = false; await render('/app'); }
   catch (error) { announce(error instanceof Error ? error.message : 'The mail files could not be read. Choose them again.'); }
   finally { main.removeAttribute('aria-busy'); }
@@ -162,10 +164,15 @@ async function connectImap(event: Event): Promise<void> {
   status.textContent = 'Connecting and reading folders…';
   try {
     const { invoke } = await import('@tauri-apps/api/core');
-    const items = await invoke<Array<{ raw: string; folder: string }>>('import_imap', { config: { host: values.host, port: Number(values.port), username: values.username, password: values.password, remember: values.remember === 'on' } });
-    const files = items.map((item, index) => { const file = new File([item.raw], `${index}.eml`); Object.defineProperty(file, 'webkitRelativePath', { value: `${item.folder}/${index}.eml` }); return file; });
-    archive = await buildArchive(files, 'IMAP'); demoMode = false; (form.closest('dialog') as HTMLDialogElement).close(); await render('/app');
-  } catch (error) { status.textContent = `The IMAP import failed. ${String(error)} Check the server, app password, and provider limit.`; }
+    const result = await invoke<{ messages: Array<{ raw: string; folder: string }>; folderCounts: Array<{ folder: string; expected: number }> }>('import_imap', { config: { host: values.host, port: Number(values.port), username: values.username, password: values.password, remember: values.remember === 'on' } });
+    const files = result.messages.map((item, index) => { const file = new File([item.raw], `${index}.eml`); Object.defineProperty(file, 'webkitRelativePath', { value: `${item.folder}/${index}.eml` }); return file; });
+    archive = await buildArchive(files, 'IMAP');
+    result.folderCounts.forEach((count) => { const downloaded = archive!.messages.filter((message) => message.folder === count.folder).length; if (downloaded !== count.expected) archive!.anomalies.push({ type: 'count', detail: `${count.folder} reported ${count.expected} messages, but ${downloaded} were downloaded.` }); });
+    demoMode = false; (form.closest('dialog') as HTMLDialogElement).close(); await render('/app');
+  } catch (error) {
+    const detail = String(error);
+    status.textContent = !navigator.onLine ? 'This computer is offline. Reconnect, then try the IMAP import again.' : /auth|login|credential/i.test(detail) ? 'The provider rejected password login. Create an app password or export mail through the provider’s OAuth flow.' : `The IMAP import failed. ${detail} Check the server and provider limit.`;
+  }
 }
 
 async function restoreLicense(event: Event): Promise<void> {
@@ -182,6 +189,7 @@ async function restoreLicense(event: Event): Promise<void> {
 async function loadRelease(): Promise<void> {
   const target = document.querySelector<HTMLElement>('.download-state'); if (!target) return;
   const fallback = `<p>Downloads are being published. <a href="https://github.com/B-Divyesh/sf-mail-escape-hatch/releases">Open the release page <span class="sr-only">(external site)</span></a>.</p>`;
+  if (['localhost', '127.0.0.1'].includes(location.hostname)) { target.innerHTML = fallback; return; }
   try {
     const cacheKey = 'release:mail-escape-hatch'; const cached = localStorage.getItem(cacheKey);
     let release: { fetched: number; assets: Array<{ name: string; browser_download_url: string }> };
@@ -196,11 +204,16 @@ async function loadRelease(): Promise<void> {
 
 function announce(message: string): void {
   let region = document.querySelector<HTMLElement>('#announcer');
-  if (!region) { region = document.createElement('div'); region.id = 'announcer'; region.className = 'sr-only'; region.setAttribute('aria-live', 'polite'); document.body.append(region); }
+  if (!region) { region = document.createElement('div'); region.id = 'announcer'; region.className = 'toast'; region.setAttribute('role', 'status'); region.setAttribute('aria-live', 'polite'); document.body.append(region); }
   region.textContent = message;
+  window.setTimeout(() => region?.remove(), 5000);
 }
 
 window.addEventListener('popstate', () => { archive = null; void render(); });
 const licenseToken = captureLicense();
+if (licenseToken) {
+  try { licenseActive = Boolean(JSON.parse(localStorage.getItem('sb_license:mail-escape-hatch:verdict') || 'null')?.valid); } catch { licenseActive = false; }
+}
 if ('serviceWorker' in navigator && !isDesktop) window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => undefined));
-void (async () => { if (licenseToken) licenseActive = (await verifyLicense()).valid; await render(isDesktop ? '/app' : location.pathname); })();
+void render(isDesktop ? '/app' : location.pathname);
+if (licenseToken) void verifyLicense().then((verdict) => { if (verdict.valid !== licenseActive) { licenseActive = verdict.valid; void render(location.pathname); } });

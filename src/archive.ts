@@ -139,9 +139,9 @@ export function createPortableArchive(result: ArchiveResult): Uint8Array {
   result.messages.forEach((message, indexValue) => {
     const number = String(indexValue + 1).padStart(5, '0');
     entries[`eml/${number}.eml`] = strToU8(message.raw);
-    message.attachments.forEach((attachment) => {
+    message.attachments.forEach((attachment, attachmentIndex) => {
       const safeName = attachment.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-      entries[`attachments/${number}/${safeName}`] = attachment.content;
+      entries[`attachments/${number}/${String(attachmentIndex + 1).padStart(2, '0')}-${safeName}`] = attachment.content;
     });
   });
   return zipSync(entries, { level: 6 });

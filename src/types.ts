@@ -28,5 +28,5 @@ export interface ArchiveResult {
   createdAt: string;
   folders: string[];
   messages: MessageRecord[];
-  anomalies: Array<{ type: 'duplicate' | 'missing-date' | 'attachment'; detail: string }>;
+  anomalies: Array<{ type: 'duplicate' | 'missing-date' | 'attachment' | 'count'; detail: string }>;
 }

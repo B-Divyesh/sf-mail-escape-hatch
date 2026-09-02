@@ -23,6 +23,6 @@ curl -fL "https://github.com/$repo/releases/download/$version/SHA256SUMS" -o "$t
 (cd "$tmp_dir" && grep " $(basename "$file")$" SHA256SUMS | sha256sum -c -)
 
 case "$file" in
-  *.AppImage) install -m 755 "$file" "$HOME/.local/bin/mail-escape-hatch"; echo "Installed to $HOME/.local/bin/mail-escape-hatch" ;;
+  *.AppImage) mkdir -p "$HOME/.local/bin"; install -m 755 "$file" "$HOME/.local/bin/mail-escape-hatch"; echo "Installed to $HOME/.local/bin/mail-escape-hatch" ;;
   *.dmg) cp "$file" "$HOME/Downloads/"; echo "Saved the verified disk image to $HOME/Downloads" ;;
 esac

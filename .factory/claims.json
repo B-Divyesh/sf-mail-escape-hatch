@@ -1,0 +1,65 @@
+[
+  {
+    "id": "sample-sandbox",
+    "claim": "Demo — sample data, nothing is saved",
+    "where": "demo banner",
+    "test": "npx playwright test --grep @claim:sample-sandbox",
+    "sandbox": "fresh browser context at /demo; assert sample counts and no demo storage keys"
+  },
+  {
+    "id": "no-account",
+    "claim": "Works without an account",
+    "where": "landing facts",
+    "test": "npx playwright test --grep @claim:no-account",
+    "sandbox": "fresh browser context at /demo with no cookies or stored identity; assert the complete report is ready"
+  },
+  {
+    "id": "portable-archive",
+    "claim": "Saves HTML, original EML files, hashes, and a JSON manifest in one ZIP",
+    "where": "How it works, README, export result",
+    "test": "npx playwright test --grep @claim:portable-archive",
+    "sandbox": "sample archive; download ZIP and inspect its files, counts, and SHA-256 values"
+  },
+  {
+    "id": "mbox-import",
+    "claim": "Imports MBOX and counts messages and attachments",
+    "where": "How it works, README, source picker",
+    "test": "npx playwright test --grep @claim:mbox-import",
+    "sandbox": "synthetic MBOX in the demo; assert four messages and two extracted attachments in the exported ZIP"
+  },
+  {
+    "id": "maildir-import",
+    "claim": "Imports Maildir folders and preserves their names",
+    "where": "How it works, README, source picker",
+    "test": "npx vitest run -t @claim:maildir-import",
+    "sandbox": "synthetic EML file with a Maildir cur path; assert source type and folder name"
+  },
+  {
+    "id": "duplicate-check",
+    "claim": "Flags duplicate messages",
+    "where": "How it works, README",
+    "test": "npx vitest run -t @claim:duplicate-check",
+    "sandbox": "two synthetic EML files with one Message-ID; assert a duplicate issue in the report model"
+  },
+  {
+    "id": "local-only",
+    "claim": "Mail stays on this computer",
+    "where": "landing facts and privacy page",
+    "test": "npx playwright test --grep @claim:local-only",
+    "sandbox": "fresh browser context at /demo; record requests throughout export and assert same-origin only"
+  },
+  {
+    "id": "offline-reload",
+    "claim": "The demo works offline after its first visit",
+    "where": "README",
+    "test": "npx playwright test --grep @claim:offline-reload",
+    "sandbox": "fresh browser context; load /demo, wait for service worker, go offline, reload, and assert report"
+  },
+  {
+    "id": "paid-history",
+    "claim": "A $19 license saves export receipts on this computer",
+    "where": "pricing, workspace, README, terms",
+    "test": "npx playwright test --grep @claim:paid-history",
+    "sandbox": "fresh browser context with a cached fixture license verdict; import one EML, export it, and assert the local receipt"
+  }
+]

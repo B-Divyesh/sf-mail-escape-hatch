@@ -33,6 +33,7 @@ export async function verifyLicense(force = false): Promise<{ valid: boolean; of
     const verdict = JSON.parse(cached) as { valid: boolean; checkedAt: number };
     if (Date.now() - verdict.checkedAt < 86_400_000) return { valid: verdict.valid };
   }
+  if (!navigator.onLine) return { valid: cached ? Boolean(JSON.parse(cached).valid) : false, offline: true };
   try {
     const response = await fetch(`${API}/verify?license=${encodeURIComponent(token)}`);
     if (!response.ok) throw new Error('verify unavailable');

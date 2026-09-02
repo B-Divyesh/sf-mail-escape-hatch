@@ -1,0 +1,10 @@
+{
+  "slug": "mail-escape-hatch",
+  "title": "Mail Escape Hatch",
+  "summary": "Verify email exports and keep a portable local archive with every message, attachment, and hash.",
+  "territory": "utilities",
+  "artifact_class": "desktop-app",
+  "user": "People leaving or auditing an IMAP provider who need a verified local archive that remains readable, searchable, and attachment-complete outside the mail client.",
+  "smallest_useful_product": "Desktop app that imports IMAP/Maildir/MBOX, verifies folder/message/attachment counts and hashes, flags OAuth or duplicate anomalies, and writes a portable HTML/EML archive plus manifest.",
+  "monetization": "one-time"
+}

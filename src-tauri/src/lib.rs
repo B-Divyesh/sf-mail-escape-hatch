@@ -16,14 +16,27 @@ struct ImportedMessage {
     raw: String,
 }
 
+#[derive(Serialize)]
+struct FolderCount {
+    folder: String,
+    expected: u32,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ImapImport {
+    messages: Vec<ImportedMessage>,
+    folder_counts: Vec<FolderCount>,
+}
+
 #[tauri::command]
-async fn import_imap(config: ImapConfig) -> Result<Vec<ImportedMessage>, String> {
+async fn import_imap(config: ImapConfig) -> Result<ImapImport, String> {
     tauri::async_runtime::spawn_blocking(move || download_imap(config))
         .await
         .map_err(|error| format!("Import task stopped: {error}"))?
 }
 
-fn download_imap(config: ImapConfig) -> Result<Vec<ImportedMessage>, String> {
+fn download_imap(config: ImapConfig) -> Result<ImapImport, String> {
     if config.host.trim().is_empty() || config.username.trim().is_empty() {
         return Err("Server and email are required.".into());
     }
@@ -48,19 +61,33 @@ fn download_imap(config: ImapConfig) -> Result<Vec<ImportedMessage>, String> {
         .list(None, Some("*"))
         .map_err(|error| format!("Folders could not be listed: {error}"))?
         .iter()
-        .filter(|mailbox| !mailbox.attributes().iter().any(|attribute| format!("{attribute:?}").contains("NoSelect")))
+        .filter(|mailbox| {
+            !mailbox
+                .attributes()
+                .iter()
+                .any(|attribute| format!("{attribute:?}").contains("NoSelect"))
+        })
         .map(|mailbox| mailbox.name().to_string())
         .collect::<Vec<_>>();
 
     let mut output = Vec::new();
+    let mut folder_counts = Vec::new();
     for folder in mailboxes {
         let mailbox = match session.select(&folder) {
             Ok(value) => value,
             Err(_) => continue,
         };
         if mailbox.exists == 0 {
+            folder_counts.push(FolderCount {
+                folder,
+                expected: 0,
+            });
             continue;
         }
+        folder_counts.push(FolderCount {
+            folder: folder.clone(),
+            expected: mailbox.exists,
+        });
         let fetched = session
             .fetch("1:*", "RFC822")
             .map_err(|error| format!("Messages in {folder} could not be read: {error}"))?;
@@ -77,7 +104,10 @@ fn download_imap(config: ImapConfig) -> Result<Vec<ImportedMessage>, String> {
     if output.is_empty() {
         return Err("No readable messages were returned by the server.".into());
     }
-    Ok(output)
+    Ok(ImapImport {
+        messages: output,
+        folder_counts,
+    })
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
