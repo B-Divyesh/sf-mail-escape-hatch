@@ -37,6 +37,9 @@ Verified on 2026-09-02:
 - `npm audit`: zero known vulnerabilities.
 - `cargo check`: passed after installing the Linux packages listed in the release workflow.
 - Static output: `dist/site/index.html`.
+- GitHub Actions run `33587703454`: macOS arm64, macOS x86_64, Windows, Linux, and checksum jobs passed.
+- Release `v0.1.0`: `.dmg`, `.msi`, `.exe`, `.AppImage`, `.deb`, `.rpm`, app archives, `SHA256SUMS`, and `latest.json` published.
+- Download check: the published amd64 `.deb` matched SHA-256 `ecac0b79bf6bfc12861ba7c3a688e9b96c01b755a290a9bb7626b98d8d1b0905`.
 
 ## Known gaps
 
