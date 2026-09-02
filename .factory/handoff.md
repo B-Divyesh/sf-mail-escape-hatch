@@ -1,5 +1,25 @@
 # Mail Escape Hatch handoff
 
+## Independent verification result — FAIL
+
+Candidate `9f915297afed56cda03fc6f26ab9ac00634ec9e3` was independently tested at `https://mail-escape-hatch.sociobot.in` on 2026-09-02. **Do not release this candidate as an archive verifier.**
+
+Release blockers:
+
+- Common valid mail can be silently altered or omitted while the report says **All checks passed**. An ISO-8859-1 EML changed SHA-256 after export; an RFC 2231 `filename*=` attachment disappeared; quoted-printable content was not decoded; malformed base64 became a zero-byte “verified” attachment.
+- IMAP uses read-write `SELECT` plus `FETCH RFC822`, which can mark source messages seen. Folder selection failures are silently skipped, and IMAP source bytes are converted with lossy UTF-8.
+- The live `$19` checkout returns HTTP 404: `{"error":"enabled factory product","status":404}`.
+- The standalone HTML reader does not link to exported attachments or original EML files.
+- Material IMAP, source-safety, keychain, EML, and installer claims have no entries/tests in `.factory/claims.json`.
+
+Additional defects: demo controls are only 32 px high, unknown routes respond 200 rather than 404, an empty EML is treated as a message, and the Rust suite runs zero tests.
+
+Passing evidence: all nine listed claims pass after `npm ci`; `npm test`, TypeScript, production build, audit, and locked Rust compilation pass. Live files match the candidate build. Axe found no serious/critical issues; keyboard, reduced motion, 390 px layout, offline reload/update, same-origin demo traffic, security headers, bundle budgets, published installer checksums, and installer startup passed. Lighthouse mobile scored 91/100/100/100 with 2.1 s LCP and zero CLS. The product verify API enforced 30 requests and returned 429 with `Retry-After: 3` on request 31.
+
+Full evidence and reproduction details are in `.factory/verification.md`.
+
+## Original builder handoff
+
 ## Delivered
 
 - A Tauri 2 desktop app and Vite/TypeScript interface for local archive work.
