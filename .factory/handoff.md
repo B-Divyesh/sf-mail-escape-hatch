@@ -49,5 +49,4 @@ Verified on 2026-09-02:
 
 - Register `mail-escape-hatch` and its $19 one-time price in the Sociobot billing service. No product ID is hardcoded.
 - Add `APPLE_CERTIFICATE`, its password/profile values, and `WINDOWS_CERT_PFX` signing secrets when certificates are available. Current release artifacts are deliberately unsigned.
-- Push tag `v0.1.0` to start `.github/workflows/release.yml`, then confirm macOS, Windows, and Linux assets, `SHA256SUMS`, and `latest.json` on the GitHub Release.
 - Deploy `dist/site` to `mail-escape-hatch.sociobot.in`. No infrastructure, DNS, billing, or unrelated services were accessed.
