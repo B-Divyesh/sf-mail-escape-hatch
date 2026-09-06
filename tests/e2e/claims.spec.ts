@@ -30,14 +30,35 @@ test('@claim:portable-archive @claim:mbox-import imports MBOX and exports HTML, 
   expect(strFromU8(files['index.html'])).toContain('attachments/00001/01-tickets.pdf');
 });
 
-test('@claim:mime-attachment-completeness imports unnamed and RFC 2231 continued attachments without a false success', async ({ page }) => {
+test('@claim:mime-attachment-completeness exports unnamed, continued-name, and empty attachments without a false success', async ({ page }) => {
   const message = `Message-ID: <continued-ui@test>\r\nDate: Tue, 18 Aug 2026 09:14:00 +0000\r\nFrom: One <one@test>\r\nSubject: Every attachment\r\nContent-Type: multipart/mixed; boundary="b"\r\n\r\n--b\r\nContent-Type: application/octet-stream\r\nContent-Disposition: attachment\r\nContent-Transfer-Encoding: base64\r\n\r\nSGVsbG8=\r\n--b\r\nContent-Type: application/pdf\r\nContent-Disposition: attachment; filename*0*=UTF-8''quarterly%20; filename*1*=report.pdf\r\nContent-Transfer-Encoding: base64\r\n\r\nUERG\r\n--b--\r\n`;
+  const withEmptyAttachment = message.replace('--b--\r\n', '--b\r\nContent-Type: application/octet-stream\r\nContent-Disposition: attachment; filename="empty.dat"\r\nContent-Transfer-Encoding: base64\r\n\r\n\r\n--b--\r\n');
   await page.goto('/app');
-  await page.locator('[data-file-input]').setInputFiles({ name: 'continued.eml', mimeType: 'message/rfc822', buffer: Buffer.from(message) });
+  await page.locator('[data-file-input]').setInputFiles({ name: 'continued.eml', mimeType: 'message/rfc822', buffer: Buffer.from(withEmptyAttachment) });
   await expect(page.getByRole('heading', { name: 'Verification report' })).toBeVisible();
-  await expect(page.locator('.report .totals div').nth(2).locator('strong')).toHaveText('2');
+  await expect(page.locator('.report .totals div').nth(2).locator('strong')).toHaveText('3');
   await expect(page.getByText('All checks passed')).toBeVisible();
   await expect(page.getByText('Every attachment')).toBeVisible();
+
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Save portable archive' }).last().click();
+  const download = await downloadPromise;
+  const path = await download.path();
+  const bytes = new Uint8Array(await import('node:fs').then((fs) => fs.readFileSync(path!)));
+  const files = unzipSync(bytes);
+  const emptyPath = 'attachments/00001/03-empty.dat';
+  const manifest = JSON.parse(strFromU8(files['manifest.json']));
+  expect(files[emptyPath]).toBeDefined();
+  expect(files[emptyPath]).toHaveLength(0);
+  expect(manifest.counts.attachments).toBe(3);
+  expect(manifest.messages[0].attachments[2]).toMatchObject({
+    name: 'empty.dat',
+    size: 0,
+    hash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+    archivePath: emptyPath,
+    error: null
+  });
+  expect(strFromU8(files['index.html'])).toContain(`href="${emptyPath}"`);
 });
 
 test('@claim:local-only demo sends no archive data off origin', async ({ browser, baseURL }) => {
@@ -52,6 +73,52 @@ test('@claim:local-only demo sends no archive data off origin', async ({ browser
   await context.close();
 });
 
+test('@claim:no-analytics public and demo use no analytics requests or cookies', async ({ browser, baseURL }) => {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  const requests: Array<{ method: string; type: string; origin: string }> = [];
+  page.on('request', (request) => requests.push({
+    method: request.method(),
+    type: request.resourceType(),
+    origin: new URL(request.url()).origin
+  }));
+
+  await page.goto(`${baseURL}/`);
+  await page.goto(`${baseURL}/privacy`);
+  await page.goto(`${baseURL}/demo`);
+  await page.getByRole('button', { name: 'Save portable archive' }).first().click();
+  await page.waitForTimeout(150);
+
+  expect(requests.filter((request) => ['fetch', 'xhr', 'eventsource'].includes(request.type))).toEqual([]);
+  expect([...new Set(requests.map((request) => request.origin))]).toEqual([new URL(baseURL!).origin]);
+  expect(requests.every((request) => request.method === 'GET')).toBe(true);
+  expect(await context.cookies()).toEqual([]);
+  await context.close();
+});
+
+test('@claim:paid-history a valid license saves a local export receipt', async ({ page }) => {
+  await page.route('https://api.sociobot.in/api/v1/products/mail-escape-hatch/verify?*', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ valid: true, reason: 'ok', expires_at: null }) });
+  });
+  await page.goto('/app');
+  await page.getByRole('button', { name: 'Restore a license' }).click();
+  await page.getByLabel('License token').fill('recorded-fixture-license');
+  await page.getByRole('button', { name: 'Verify license' }).click();
+  await expect(page.getByText('License active. New export receipts will be saved on this computer.')).toBeVisible();
+  await page.locator('[data-file-input]').setInputFiles({
+    name: 'receipt.eml',
+    mimeType: 'message/rfc822',
+    buffer: Buffer.from('From: one@test\nDate: Tue, 18 Aug 2026 09:14:00 +0000\nSubject: Receipt proof\n\nHello')
+  });
+  await expect(page.getByRole('heading', { name: 'Verification report' })).toBeVisible();
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Save portable archive' }).last().click();
+  await downloadPromise;
+  const receipts = await page.evaluate(() => JSON.parse(localStorage.getItem('archive-history:mail-escape-hatch') || '[]'));
+  expect(receipts).toHaveLength(1);
+  expect(receipts[0]).toMatchObject({ source: 'receipt.eml', messages: 1, attachments: 0 });
+});
+
 test('@claim:offline-reload demo reloads after the first visit without a network', async ({ browser, baseURL }) => {
   const context = await browser.newContext();
   const page = await context.newPage();
@@ -62,6 +129,22 @@ test('@claim:offline-reload demo reloads after the first visit without a network
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Review the sample archive' })).toBeVisible();
   await context.close();
+});
+
+test('landing defers the archive engine until the demo is opened', async ({ page }) => {
+  const scripts: string[] = [];
+  page.on('request', (request) => {
+    if (request.resourceType() === 'script') scripts.push(new URL(request.url()).pathname);
+  });
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'Verify mail before you leave' })).toBeVisible();
+  const isArchiveScript = (path: string) => /\/(?:archive|sample)(?:-[^/]+)?\.(?:js|ts)$/.test(path);
+  expect(scripts.some(isArchiveScript)).toBe(false);
+
+  await page.getByRole('link', { name: 'Try it with sample data' }).click();
+  await expect(page.getByRole('heading', { name: 'Review the sample archive' })).toBeVisible();
+  expect(scripts.some((path) => /\/archive(?:-[^/]+)?\.(?:js|ts)$/.test(path))).toBe(true);
+  expect(scripts.some((path) => /\/sample(?:-[^/]+)?\.(?:js|ts)$/.test(path))).toBe(true);
 });
 
 test('all public routes have landmarks, one h1, and no serious accessibility findings', async ({ page }) => {

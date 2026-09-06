@@ -1,6 +1,6 @@
 {
   "name": "mail-escape-hatch",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "type": "module",
   "scripts": {
@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@tauri-apps/api": "2.11.1",
-    "fflate": "0.8.2"
+    "fflate": "0.8.3"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.10.2",
@@ -27,5 +27,7 @@
     "vite": "7.3.6",
     "vitest": "3.2.7"
   },
-  "overrides": { "playwright-core": "1.58.2" }
+  "overrides": {
+    "playwright-core": "1.58.2"
+  }
 }

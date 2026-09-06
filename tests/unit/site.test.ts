@@ -13,9 +13,9 @@ describe('static delivery', () => {
     expect(notFound).not.toContain('<style>');
   });
 
-  it('versions the service-worker cache and replaces the retired v1 cache on activation', () => {
+  it('versions the service-worker cache and replaces retired caches on activation', () => {
     const worker = readFileSync('public/sw.js', 'utf8');
-    expect(worker).toContain("mail-escape-hatch-v2");
+    expect(worker).toContain("mail-escape-hatch-v3");
     expect(worker).toContain('self.skipWaiting()');
     expect(worker).toContain('self.clients.claim()');
     expect(worker).toContain('caches.delete(key)');

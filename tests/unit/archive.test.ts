@@ -61,7 +61,7 @@ describe('archive engine', () => {
     expect(JSON.parse(strFromU8(files['manifest.json'])).messages[0].attachments[0].archivePath).toBe('attachments/00001/01-report_final.pdf');
   });
 
-  it('@claim:mime-attachment-completeness keeps unnamed attachments and RFC 2231 continued filenames', async () => {
+  it('keeps unnamed attachments and RFC 2231 continued filenames', async () => {
     const message = `Message-ID: <continued@test>\r\nDate: Tue, 18 Aug 2026 09:14:00 +0000\r\nFrom: One <one@test>\r\nSubject: Every attachment\r\nContent-Type: multipart/mixed; boundary="b"\r\n\r\n--b\r\nContent-Type: application/octet-stream\r\nContent-Disposition: attachment\r\nContent-Transfer-Encoding: base64\r\n\r\nSGVsbG8=\r\n--b\r\nContent-Type: application/pdf\r\nContent-Disposition: attachment; filename*0*=UTF-8''quarterly%20; filename*1*=report.pdf\r\nContent-Transfer-Encoding: base64\r\n\r\nUERG\r\n--b--\r\n`;
     const result = await buildArchive([new File([message], 'continued.eml')]);
     const attachments = result.messages[0].attachments;
@@ -76,6 +76,20 @@ describe('archive engine', () => {
       'attachments/00001/02-quarterly_report.pdf'
     ]));
     expect(JSON.parse(strFromU8(files['manifest.json'])).counts.attachments).toBe(2);
+  });
+
+  it('@claim:reader-complete keeps text beyond 100,000 characters readable and searchable', async () => {
+    const marker = 'END-OF-MESSAGE-LEGAL-HOLD';
+    const body = `${'archive evidence '.repeat(7_000)}${marker}`;
+    const message = `Message-ID: <long@test>\r\nDate: Tue, 18 Aug 2026 09:14:00 +0000\r\nFrom: One <one@test>\r\nSubject: Complete legal hold\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n${body}`;
+    const result = await buildArchive([new File([message], 'long.eml')]);
+    const files = unzipSync(createPortableArchive(result));
+    const reader = strFromU8(files['index.html']);
+
+    expect(body.length).toBeGreaterThan(100_000);
+    expect(reader).toContain(marker);
+    expect(reader).toContain(body);
+    expect(files['eml/00001.eml']).toEqual(new TextEncoder().encode(message));
   });
 
   it('@claim:invalid-attachments rejects malformed base64 instead of exporting an empty attachment or reporting success', async () => {

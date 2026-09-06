@@ -2,7 +2,9 @@
 
 Mail Escape Hatch is a local desktop tool for people leaving or auditing an email provider. It imports IMAP, Maildir, MBOX, and EML mail, checks messages and attachments, then saves a portable archive.
 
-The archive is a ZIP with a standalone HTML reader that links to original EML files and extracted attachments, `manifest.json`, and SHA-256 hashes. It preserves the original source bytes in every exported EML, including valid unnamed attachments and RFC 2231 continued filenames.
+The archive is a ZIP with a standalone HTML reader that links to original EML files and extracted attachments, `manifest.json`, and SHA-256 hashes. The reader keeps complete message text without a fixed character cutoff. The export preserves original EML bytes and valid unnamed, continued-name, and zero-byte attachments.
+
+The free app checks and exports supported archives. A $19 one-time license saves up to 50 export receipts on the same computer. New purchases depend on Sociobot billing registration and are not open yet; existing licenses can still be restored.
 
 ## Try the sample
 
@@ -10,10 +12,15 @@ Open `/demo` or run the site and visit `http://127.0.0.1:4173/demo`. The demo co
 
 ## Run locally
 
-Requirements: Node.js 22+, npm 10+, and Rust 1.77+ for the desktop shell.
+Requirements: Node.js 22+, npm 10+, and Rust 1.77+ for the desktop shell. On Debian or Ubuntu, install the desktop test and build libraries first:
 
 ```sh
-npm install
+sudo apt-get update
+sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libsecret-1-dev
+```
+
+```sh
+npm ci
 npm run dev
 ```
 

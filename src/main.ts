@@ -1,6 +1,5 @@
 import './styles.css';
-import { buildArchive, createPortableArchive } from './archive';
-import { sampleArchive } from './sample';
+import { cachedLicenseActive, captureLicense, saveLicense, verifyLicense } from './license';
 import type { ArchiveResult } from './types';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
@@ -8,6 +7,9 @@ const isDesktop = '__TAURI_INTERNALS__' in window;
 let archive: ArchiveResult | null = null;
 let demoMode = false;
 let sourceError = '';
+let licenseActive = false;
+let licenseNotice = '';
+const loadArchiveEngine = () => import('./archive');
 
 const routeInfo: Record<string, { title: string; description: string }> = {
   '/': { title: 'Mail Escape Hatch — Verify a local mail archive', description: 'Import MBOX, Maildir, or IMAP mail. Check every message and attachment, then keep a portable local archive.' },
@@ -28,11 +30,11 @@ function header(): string {
 }
 
 function footer(): string {
-  return `<footer class="site-footer"><div><strong>Mail Escape Hatch</strong><p>Verify mail, then keep a portable local copy.</p></div><nav aria-label="Footer"><a href="/privacy" data-link>Privacy</a><a href="/terms" data-link>Terms</a><a href="https://sociobot.in" rel="external">Built by Param Factory <span class="sr-only">(external site)</span></a></nav><small>Version 0.1.1 · Generated artwork</small></footer>`;
+  return `<footer class="site-footer"><div><strong>Mail Escape Hatch</strong><p>Verify mail, then keep a portable local copy.</p></div><nav aria-label="Footer"><a href="/privacy" data-link>Privacy</a><a href="/terms" data-link>Terms</a><a href="https://sociobot.in" rel="external">Built by Param Factory <span class="sr-only">(external site)</span></a></nav><small>Version 0.1.2 · Generated artwork</small></footer>`;
 }
 
 function facts(): string {
-  return `<ul class="facts" aria-label="Product facts"><li><span aria-hidden="true">●</span> Mail stays on this computer</li><li><span aria-hidden="true">●</span> Works without an account</li><li><span aria-hidden="true">●</span> Exports original EML bytes</li></ul>`;
+  return `<ul class="facts" aria-label="Product facts"><li><span aria-hidden="true">●</span> Mail stays on this computer</li><li><span aria-hidden="true">●</span> Works without an account</li><li><span aria-hidden="true">●</span> $19 once for saved history</li></ul>`;
 }
 
 function landing(): string {
@@ -41,14 +43,15 @@ function landing(): string {
       <div class="hero-copy"><p class="eyebrow">Local mail archive verifier</p><h1 id="page-title">Verify mail before you leave</h1><p class="lede">For people leaving an email provider who need a complete, readable local archive.</p>
         <div class="hero-actions"><a class="button primary" href="/demo" data-link>Try it with sample data</a><span>See four checked messages now.</span></div>${facts()}
       </div>
-      <figure class="hero-art"><picture><source srcset="/assets/hero-720.webp 720w, /assets/hero-1200.webp 1200w" type="image/webp"><img src="/assets/hero-fallback.jpg" width="1200" height="800" fetchpriority="high" alt="An open archive case guides paper messages through a lit verification gate." sizes="(max-width: 760px) 100vw, 58vw"></picture><figcaption>Messages enter on the left. Verified copies remain readable on the right.</figcaption></figure>
+      <figure class="hero-art"><picture><source srcset="/assets/hero-720.webp 720w, /assets/hero-1200.webp 1200w" type="image/webp"><img src="/assets/hero-fallback.jpg" width="1200" height="800" fetchpriority="high" decoding="async" alt="An open archive case guides paper messages through a lit verification gate." sizes="(max-width: 760px) 100vw, 58vw"></picture><figcaption>Messages enter on the left. Verified copies remain readable on the right.</figcaption></figure>
     </section>
     <section class="proof-strip" aria-label="Archive checks"><span>Folder counts</span><span>Message hashes</span><span>Attachment checks</span><span>Original headers</span></section>
     <section class="live-preview" aria-labelledby="preview-title"><div class="section-heading"><p class="eyebrow">Product preview</p><h2 id="preview-title">See every check in one ledger</h2><p>The archive report keeps counts, issues, and SHA-256 hashes together.</p></div>${ledgerPreview()}</section>
     <section id="how" class="how" aria-labelledby="how-title"><p class="eyebrow">How it works</p><h2 id="how-title">Make an archive in three steps</h2><ol><li><figure><img src="/assets/walkthrough/01-choose.webp" width="1192" height="385" loading="lazy" alt="The source picker for MBOX, Maildir, and IMAP mail."><figcaption><strong>1 · Choose mail</strong><p>Open an MBOX file, a Maildir folder, or connect to IMAP.</p></figcaption></figure></li><li><figure><img src="/assets/walkthrough/02-check.webp" width="1192" height="420" loading="lazy" alt="A report comparing message and attachment counts."><figcaption><strong>2 · Check the copy</strong><p>Compare folder, message, and attachment counts. Review duplicates and missing dates.</p></figcaption></figure></li><li><figure><img src="/assets/walkthrough/03-export.webp" width="1192" height="420" loading="lazy" alt="The report table and portable archive action."><figcaption><strong>3 · Keep the archive</strong><p>Save HTML, original EML files, hashes, and a JSON manifest in one ZIP.</p></figcaption></figure></li></ol></section>
     <section class="boundaries" aria-labelledby="boundaries-title"><div><p class="eyebrow">Clear boundaries</p><h2 id="boundaries-title">Your mail does not become our mail</h2></div><div><p>The app reads sources on your computer. IMAP connects from your computer to your provider.</p><p>It does not send messages, migrate accounts, or upload your archive.</p><p>IMAP folders are opened read-only. Passwords are used for the connection and are not stored. Exported archives are not encrypted unless you encrypt their destination.</p></div></section>
-    <section class="downloads" aria-labelledby="download-title"><p class="eyebrow">Desktop app</p><h2 id="download-title">Download for your computer</h2><p>Builds are unsigned until the release signing certificates are added.</p><div class="download-state" aria-live="polite"><span class="loader" aria-hidden="true"></span>Checking the latest release…</div></section>
-  </main>${footer()}`;
+    <section id="pricing" class="pricing" aria-labelledby="price-title"><div><p class="eyebrow">One-time license</p><h2 id="price-title">Save verification history</h2><p class="price"><span>$19</span> once</p><p>The free app checks and exports supported archives. A license saves up to 50 export receipts on this computer.</p></div><div class="price-actions"><p class="billing-note">New purchases are not open yet while billing registration is completed.</p><button class="button secondary" type="button" data-restore>Restore a license</button><p>Sociobot is the merchant of record. Refunds revoke the license.</p></div></section>
+    <section class="downloads" aria-labelledby="download-title"><p class="eyebrow">Desktop app</p><h2 id="download-title">Download for your computer</h2><p>Builds are unsigned until the release signing certificates are added.</p><div class="download-state" aria-live="polite"><span class="loader" aria-hidden="true"></span>Scroll here to check the latest release.</div></section>
+  </main>${footer()}${restoreDialog()}`;
 }
 
 function ledgerPreview(): string {
@@ -56,7 +59,17 @@ function ledgerPreview(): string {
 }
 
 function workspace(): string {
-  return `${header()}${demoMode ? `<aside class="demo-banner" aria-label="Demo mode"><strong>Demo — sample data, nothing is saved</strong><span><button data-reset-demo>Reset demo</button><button data-start-real>Start for real</button></span></aside>` : ''}<main id="main" tabindex="-1" class="workspace-main"><section class="workspace-title"><div><p class="eyebrow">Archive workspace</p><h1>${demoMode ? 'Review the sample archive' : 'Choose mail to verify'}</h1><p>${demoMode ? 'Four sample messages show a complete check and one issue.' : 'MBOX, EML, and Maildir files are read on this computer.'}</p></div>${archive ? `<button class="button primary" data-export>Save portable archive</button>` : ''}</section>${archive ? reportView(archive) : sourcePicker()}</main>${footer()}`;
+  return `${header()}${demoMode ? `<aside class="demo-banner" aria-label="Demo mode"><strong>Demo — sample data, nothing is saved</strong><span><button data-reset-demo>Reset demo</button><button data-start-real>Start for real</button></span></aside>` : ''}<main id="main" tabindex="-1" class="workspace-main"><section class="workspace-title"><div><p class="eyebrow">Archive workspace${!demoMode && licenseActive ? ' · Licensed' : ''}</p><h1>${demoMode ? 'Review the sample archive' : 'Choose mail to verify'}</h1><p>${demoMode ? 'Four sample messages show a complete check and one issue.' : 'MBOX, EML, and Maildir files are read on this computer.'}</p></div>${archive ? `<button class="button primary" data-export>Save portable archive</button>` : ''}</section>${archive ? reportView(archive) : sourcePicker()}${!demoMode ? historyView() : ''}</main>${footer()}${!demoMode ? restoreDialog() : ''}`;
+}
+
+function restoreDialog(): string {
+  return `<dialog id="restore-dialog"><form method="dialog"><button class="dialog-close" value="cancel" aria-label="Close">×</button><p class="eyebrow">Restore purchase</p><h2>Paste your license</h2><label for="license-token">License token</label><input id="license-token" name="license" autocomplete="off" required><p id="license-status" role="status">${html(licenseNotice)}</p><button class="button primary" value="default" data-license-save>Verify license</button></form></dialog>`;
+}
+
+function historyView(): string {
+  if (!licenseActive) return `<section class="history" aria-labelledby="history-title"><h2 id="history-title">Verification history</h2><p>A $19 one-time license saves export receipts on this computer. New purchases are not open yet.</p><button class="button secondary" type="button" data-restore>Restore a license</button>${licenseNotice ? `<p role="status">${html(licenseNotice)}</p>` : ''}</section>`;
+  const records = JSON.parse(localStorage.getItem('archive-history:mail-escape-hatch') || '[]') as Array<{ date: string; source: string; messages: number; attachments: number }>;
+  return `<section class="history" aria-labelledby="history-title"><h2 id="history-title">Verification history</h2>${records.length ? `<ul>${records.map((item) => `<li><strong>${html(item.source)}</strong><span>${item.messages} messages · ${item.attachments} attachments · ${html(item.date.slice(0, 10))}</span></li>`).join('')}</ul>` : '<p>Your saved export receipts will appear here.</p>'}</section>`;
 }
 
 function sourcePicker(): string {
@@ -74,9 +87,9 @@ function reportView(result: ArchiveResult): string {
 }
 
 function legal(kind: 'privacy' | 'terms'): string {
-  const privacy = `<h1>Privacy in plain words</h1><p class="lede">Mail stays on your computer unless you choose a provider connection.</p><h2>Local files</h2><p>The app reads selected mail files and writes the archive you request. It does not send mail or archive contents to us.</p><h2>IMAP connections</h2><p>The desktop app connects directly to the IMAP server you enter. It opens folders read-only and does not mark messages seen.</p><h2>Downloads</h2><p>The website asks GitHub for public release details. That request includes no mail data.</p><h2>Storage</h2><p>The demo uses memory only. The app does not use analytics.</p><h2>Contact</h2><p>Email <a href="mailto:privacy@sociobot.in">privacy@sociobot.in</a> for a privacy request.</p>`;
-  const terms = `<h1>Terms of use</h1><p class="lede">Use Mail Escape Hatch only with mail you may lawfully access.</p><h2>Your responsibility</h2><p>Keep a backup until you confirm the archive opens and matches your source. Follow your provider’s access and rate-limit rules.</p><h2>No email service</h2><p>The app does not send, host, or migrate mail. It makes local archive files from the sources you select.</p><h2>Warranty</h2><p>The software is provided as-is under the MIT License. Verify important archives before deleting any source.</p>`;
-  return `${header()}<main id="main" tabindex="-1" class="prose"><article>${kind === 'privacy' ? privacy : terms}<p>Last updated: 2 September 2026.</p></article></main>${footer()}`;
+  const privacy = `<h1>Privacy in plain words</h1><p class="lede">Mail stays on your computer unless you choose a provider connection.</p><h2>Local files</h2><p>The app reads selected mail files and writes the archive you request. It does not send mail or archive contents to us.</p><h2>IMAP connections</h2><p>The desktop app connects directly to the IMAP server you enter. It opens folders read-only and does not mark messages seen.</p><h2>Licenses and downloads</h2><p>License checks send only the license token to Sociobot. The website asks GitHub for public release details. Neither request includes mail data.</p><h2>Storage</h2><p>The demo uses memory only. A license token, its daily result, and licensed export receipts stay in browser storage. The app does not use analytics.</p><h2>Contact</h2><p>Email <a href="mailto:privacy@sociobot.in">privacy@sociobot.in</a> for a privacy request.</p>`;
+  const terms = `<h1>Terms of use</h1><p class="lede">Use Mail Escape Hatch only with mail you may lawfully access.</p><h2>Your responsibility</h2><p>Keep a backup until you confirm the archive opens and matches your source. Follow your provider’s access and rate-limit rules.</p><h2>License</h2><p>The free app checks and exports supported archives. A $19 one-time license saves up to 50 local export receipts.</p><h2>Payments and refunds</h2><p>Sociobot and Dodo are the merchant of record. An approved refund revokes its license.</p><h2>No email service</h2><p>The app does not send, host, or migrate mail. It makes local archive files from the sources you select.</p><h2>Warranty</h2><p>The software is provided as-is under the MIT License. Verify important archives before deleting any source.</p>`;
+  return `${header()}<main id="main" tabindex="-1" class="prose"><article>${kind === 'privacy' ? privacy : terms}<p>Last updated: 6 September 2026.</p></article></main>${footer()}`;
 }
 
 function notFound(): string {
@@ -93,10 +106,10 @@ async function render(path = location.pathname, push = false): Promise<void> {
   const meta = routeInfo[known]; document.title = meta.title;
   document.querySelector<HTMLMetaElement>('meta[name="description"]')!.content = meta.description;
   demoMode = known === '/demo';
-  if (demoMode && !archive) archive = await sampleArchive();
+  if (demoMode && !archive) archive = await import('./sample').then((module) => module.sampleArchive());
   app.innerHTML = known === '/' ? landing() : known === '/demo' || known === '/app' ? workspace() : known === '/privacy' || known === '/terms' ? legal(known.slice(1) as 'privacy' | 'terms') : notFound();
   bindActions();
-  if (known === '/') void loadRelease();
+  if (known === '/') observeRelease();
   const heading = document.querySelector<HTMLElement>('h1');
   if (push && heading) { heading.tabIndex = -1; heading.focus({ preventScroll: true }); }
 }
@@ -106,12 +119,14 @@ function bindActions(): void {
   document.querySelectorAll<HTMLAnchorElement>('[data-home-link]').forEach((link) => link.addEventListener('click', (event) => { if (location.pathname !== '/') { event.preventDefault(); archive = null; void render('/', true).then(() => document.querySelector(link.hash)?.scrollIntoView()); } }));
   document.querySelector<HTMLInputElement>('[data-file-input]')?.addEventListener('change', async (event) => handleFiles(Array.from((event.currentTarget as HTMLInputElement).files || [])));
   document.querySelector<HTMLInputElement>('[data-dir-input]')?.addEventListener('change', async (event) => handleFiles(Array.from((event.currentTarget as HTMLInputElement).files || []), 'Maildir'));
-  document.querySelectorAll('[data-export]').forEach((button) => button.addEventListener('click', exportArchive));
+  document.querySelectorAll('[data-export]').forEach((button) => button.addEventListener('click', () => void exportArchive()));
   document.querySelector('[data-new-import]')?.addEventListener('click', () => { archive = null; demoMode = false; sourceError = ''; void render('/app'); });
-  document.querySelector('[data-reset-demo]')?.addEventListener('click', async () => { archive = await sampleArchive(); void render('/demo'); });
+  document.querySelector('[data-reset-demo]')?.addEventListener('click', async () => { archive = await import('./sample').then((module) => module.sampleArchive()); void render('/demo'); });
   document.querySelector('[data-start-real]')?.addEventListener('click', () => { archive = null; demoMode = false; if (isDesktop) void render('/app'); else void render('/', true).then(() => document.querySelector('#download-title')?.scrollIntoView()); });
   document.querySelector('[data-imap-open]')?.addEventListener('click', () => (document.querySelector('#imap-dialog') as HTMLDialogElement).showModal());
   document.querySelector('[data-imap-connect]')?.addEventListener('click', connectImap);
+  document.querySelectorAll('[data-restore]').forEach((button) => button.addEventListener('click', () => (document.querySelector('#restore-dialog') as HTMLDialogElement).showModal()));
+  document.querySelector('[data-license-save]')?.addEventListener('click', (event) => void restoreLicense(event));
 }
 
 async function handleFiles(files: File[], forcedType?: 'Maildir'): Promise<void> {
@@ -119,19 +134,38 @@ async function handleFiles(files: File[], forcedType?: 'Maildir'): Promise<void>
   const status = document.querySelector<HTMLElement>('#source-status');
   main.setAttribute('aria-busy', 'true');
   if (status) status.textContent = 'Reading messages and calculating hashes…';
-  try { archive = await buildArchive(files, forcedType); sourceError = ''; demoMode = false; await render('/app'); }
+  try { archive = await loadArchiveEngine().then((module) => module.buildArchive(files, forcedType)); sourceError = ''; demoMode = false; await render('/app'); }
   catch (error) { sourceError = error instanceof Error ? error.message : 'The mail files could not be read. Choose them again.'; await render('/app'); announce(sourceError); }
   finally { main.removeAttribute('aria-busy'); }
 }
 
-function exportArchive(): void {
+async function exportArchive(): Promise<void> {
   if (!archive) return;
-  const data = createPortableArchive(archive);
+  const data = await loadArchiveEngine().then((module) => module.createPortableArchive(archive!));
   const link = document.createElement('a');
   link.href = URL.createObjectURL(new Blob([data.buffer as ArrayBuffer], { type: 'application/zip' }));
   link.download = `mail-escape-hatch-${new Date().toISOString().slice(0, 10)}.zip`;
   link.click(); URL.revokeObjectURL(link.href);
+  if (licenseActive && !demoMode) {
+    const key = 'archive-history:mail-escape-hatch';
+    const records = JSON.parse(localStorage.getItem(key) || '[]') as Array<Record<string, unknown>>;
+    records.unshift({ date: new Date().toISOString(), source: archive.sourceName, messages: archive.messages.length, attachments: archive.messages.reduce((sum, message) => sum + message.attachments.length, 0) });
+    localStorage.setItem(key, JSON.stringify(records.slice(0, 50)));
+  }
   announce('Portable archive saved. Open index.html inside the ZIP to read it.');
+}
+
+async function restoreLicense(event: Event): Promise<void> {
+  event.preventDefault();
+  const input = document.querySelector<HTMLInputElement>('#license-token')!;
+  const status = document.querySelector<HTMLElement>('#license-status')!;
+  if (!input.value.trim()) { status.textContent = 'Paste the license from your receipt.'; return; }
+  saveLicense(input.value);
+  status.textContent = 'Checking the license…';
+  const verdict = await verifyLicense(true);
+  licenseActive = verdict.valid;
+  licenseNotice = verdict.valid ? 'License active. New export receipts will be saved on this computer.' : verdict.offline ? 'The license server is unavailable. Try again when online.' : 'This license is not active. Check the token and try again.';
+  status.textContent = licenseNotice;
 }
 
 async function connectImap(event: Event): Promise<void> {
@@ -146,7 +180,7 @@ async function connectImap(event: Event): Promise<void> {
     const { invoke } = await import('@tauri-apps/api/core');
     const result = await invoke<{ messages: Array<{ raw: number[]; folder: string }>; folderCounts: Array<{ folder: string; expected: number }>; folderIssues: Array<{ folder: string; detail: string }> }>('import_imap', { config: { host: values.host, port: Number(values.port), username: values.username, password: values.password } });
     const files = result.messages.map((item, index) => { const file = new File([new Uint8Array(item.raw)], `${index}.eml`); Object.defineProperty(file, 'webkitRelativePath', { value: `${item.folder}/${index}.eml` }); return file; });
-    archive = await buildArchive(files, 'IMAP');
+    archive = await loadArchiveEngine().then((module) => module.buildArchive(files, 'IMAP'));
     result.folderCounts.forEach((count) => { const downloaded = archive!.messages.filter((message) => message.folder === count.folder).length; if (downloaded !== count.expected) archive!.anomalies.push({ type: 'count', detail: `${count.folder} reported ${count.expected} messages, but ${downloaded} were downloaded.` }); });
     result.folderIssues.forEach((issue) => archive!.anomalies.push({ type: 'count', detail: `${issue.folder}: ${issue.detail}` }));
     demoMode = false; (form.closest('dialog') as HTMLDialogElement).close(); await render('/app');
@@ -172,6 +206,18 @@ async function loadRelease(): Promise<void> {
   } catch { target.innerHTML = fallback; }
 }
 
+function observeRelease(): void {
+  const section = document.querySelector<HTMLElement>('.downloads');
+  if (!section) return;
+  if (!('IntersectionObserver' in window)) { void loadRelease(); return; }
+  const observer = new IntersectionObserver((entries) => {
+    if (!entries.some((entry) => entry.isIntersecting)) return;
+    observer.disconnect();
+    void loadRelease();
+  }, { rootMargin: '320px' });
+  observer.observe(section);
+}
+
 function announce(message: string): void {
   let region = document.querySelector<HTMLElement>('#announcer');
   if (!region) { region = document.createElement('div'); region.id = 'announcer'; region.className = 'toast'; region.setAttribute('role', 'status'); region.setAttribute('aria-live', 'polite'); document.body.append(region); }
@@ -180,5 +226,12 @@ function announce(message: string): void {
 }
 
 window.addEventListener('popstate', () => { archive = null; void render(); });
+const licenseToken = location.pathname === '/demo' ? null : captureLicense();
+licenseActive = location.pathname === '/demo' ? false : cachedLicenseActive();
 if ('serviceWorker' in navigator && !isDesktop) window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => undefined));
 void render(isDesktop ? '/app' : location.pathname);
+if (licenseToken) void verifyLicense().then((verdict) => {
+  licenseActive = verdict.valid;
+  if (!verdict.valid && !verdict.offline) licenseNotice = 'This license is not active. Check the token and try again.';
+  void render(isDesktop ? '/app' : location.pathname);
+});
