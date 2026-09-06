@@ -61,15 +61,24 @@ test('@claim:mime-attachment-completeness exports unnamed, continued-name, and e
   expect(strFromU8(files['index.html'])).toContain(`href="${emptyPath}"`);
 });
 
-test('@claim:local-only demo sends no archive data off origin', async ({ browser, baseURL }) => {
+test('@claim:local-only demo and local-file archive data stay on the product origin', async ({ browser, baseURL }) => {
   const context = await browser.newContext();
   const page = await context.newPage();
-  const outgoing = new Set<string>();
-  page.on('request', (request) => outgoing.add(new URL(request.url()).origin));
+  const outgoing: Array<{ method: string; origin: string }> = [];
+  page.on('request', (request) => outgoing.push({ method: request.method(), origin: new URL(request.url()).origin }));
   await page.goto(`${baseURL}/demo`);
   await page.getByRole('button', { name: 'Save portable archive' }).first().click();
+  await page.goto(`${baseURL}/app`);
+  await page.locator('[data-file-input]').setInputFiles({
+    name: 'private-local.eml',
+    mimeType: 'message/rfc822',
+    buffer: Buffer.from('From: private@example.test\nDate: Tue, 18 Aug 2026 09:14:00 +0000\nSubject: local-only-secret-marker\n\nPrivate body')
+  });
+  await page.getByText('All checks passed').waitFor();
+  await page.getByRole('button', { name: 'Save portable archive' }).last().click();
   await page.waitForTimeout(150);
-  expect([...outgoing]).toEqual([new URL(baseURL!).origin]);
+  expect([...new Set(outgoing.map((request) => request.origin))]).toEqual([new URL(baseURL!).origin]);
+  expect(outgoing.every((request) => request.method === 'GET')).toBe(true);
   await context.close();
 });
 

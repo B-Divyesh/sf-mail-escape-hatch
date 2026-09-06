@@ -37,7 +37,8 @@ Playwright 1.58.2 is pinned. Chromium must be available at `PLAYWRIGHT_BROWSERS_
 ```sh
 npm test
 npm run build:site
-cargo test --manifest-path src-tauri/Cargo.toml
+npm run lint:rust
+cargo test --locked --manifest-path src-tauri/Cargo.toml
 ```
 
 The static site is written to `dist/site/`. Desktop installers are built by [the release workflow](.github/workflows/release.yml), never by the deployment worker.
