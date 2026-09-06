@@ -1,77 +1,40 @@
-# Mail Escape Hatch repair handoff
+# Mail Escape Hatch verification handoff
 
 ## Result
 
-Repair 3 is complete. The implementation and desktop release SHA is
-`dbe217579be31cf2800ea9875efe6e7f8f3ee63a`; later commits contain tests and
-verification documentation only. Release `v0.1.2` and the live static site use
-that implementation.
+Independent verification 4 reviewed implementation `dbe217579be31cf2800ea9875efe6e7f8f3ee63a`, claim-test/documentation SHA `7b52c11b8132e420e5665348a3ce0cb1f57f7764`, release `v0.1.2`, and the live site.
 
-The three release blockers are fixed:
+**Result: FAIL.** There are 3 findings and 6 untested public claims. No product code was changed during this verification.
 
-- valid zero-byte base64 attachments are exported, hashed, linked, and listed
-  in the manifest;
-- standalone readers contain complete message text beyond 100,000 characters;
-- three production Lighthouse mobile runs scored 100 Performance, with
-  0–25 ms Total Blocking Time.
+The full evidence is in `.factory/verification-4.md`.
 
-The README Linux prerequisites, dedicated no-analytics claim, outdated 404
-wording/metadata, moderate ZIP dependency advisory, and researched paid-history
-deliverable were also addressed.
+## What passed
+
+- Fresh desktop and phone checks state the job, audience, and sample first action before scrolling.
+- The one-click demo, persistent sample banner, reset, start-for-real, privacy isolation, normal/invalid/recovery imports, zero-byte attachments, and complete long reader pass live checks.
+- Every exact command in all 22 declared claims passed from a clean clone after the documented Linux prerequisites and `npm ci`.
+- `npm test` passed 15 unit and 11 browser tests. TypeScript, production build, Rust fmt/Clippy, four Rust tests, and moderate audit passed.
+- Three fresh mobile Lighthouse runs scored 100 Performance, Accessibility, Best Practices, and SEO.
+- Current release artifacts, hashes, live files, routes, offline reload, keyboard behavior, legal pages, links, and expected HTTP 404 were checked. The extracted Debian artifact smoke-ran in a clean consumer directory.
+
+## Findings to repair
+
+1. The privacy `mailto:` link is 162×19 px at 390 px wide, below the required 44×44 px touch target.
+2. The `$19` claim says a license saves up to 50 receipts, but its declared test proves only one receipt.
+3. Five public promises have no claims entry or sandbox proof: archive encryption caveat, purchase-unavailable status, merchant of record, refund revocation, and unsigned-build status.
 
 ## Run and verify
 
-On Debian or Ubuntu, install the packages listed in README, then run:
+On Debian/Ubuntu, install the packages listed in `README.md`, then run:
 
 ```sh
 npm ci
 npm test
+npx tsc --noEmit
 npm run build
 npm run lint:rust
 cargo test --locked --manifest-path src-tauri/Cargo.toml
+npm audit --audit-level=moderate
 ```
 
-Observed on 2026-09-06:
-
-- all 22 exact claim commands passed from the documented clean setup;
-- 15 Vitest tests and 11 Playwright tests passed;
-- TypeScript, build, Rust formatting, strict Clippy, and 4 Rust tests passed;
-- `npm audit --audit-level=moderate` reported zero vulnerabilities;
-- `dist/site/` contains the deployable static site;
-- live desktop/phone, demo/reset/start, local boundary export, keyboard,
-  reduced-motion, privacy, offline, legal, and 404 checks passed;
-- axe found zero violations on all normal routes at desktop and phone widths;
-- all 27 deployed files match the local build by SHA-256.
-
-Full commands, measurements, prior-finding disposition, and release evidence
-are in `.factory/verification-4.md`.
-
-## Release and deployment
-
-- GitHub Actions run `34011169108`: success.
-- Release `v0.1.2`: macOS arm64/x64, Windows MSI/EXE, Linux AppImage/DEB/RPM,
-  `SHA256SUMS`, and `latest.json`.
-- Published Debian SHA-256:
-  `7fb5f443127ac3a6c690d13d9f86edc41bdc2f651486f660121ceda42a697b61`.
-- Extracted Debian binary: remained running for a 12-second Xvfb consumer smoke
-  test with no application error.
-- Production: `https://mail-escape-hatch.sociobot.in`.
-- Fresh Linux browser download: the `v0.1.2` AppImage.
-- Factory URL verification: 863 ms load, no console errors.
-- Live Lighthouse mobile: Performance 100/100/100; Accessibility, Best
-  Practices, and SEO 100 in every run; LCP 1.35–1.48 s; CLS 0.
-
-## Known gaps and operator action
-
-- Register the existing $19 one-time offer in Sociobot billing. The endpoint
-  currently returns HTTP 404, so new purchases remain visibly closed and no
-  broken checkout is exposed. Exact public metadata is at
-  `/work/.evidence/billing-offer.json`.
-- Add the owner-managed macOS and Windows signing certificates. Current builds
-  are intentionally unsigned.
-- Provider-specific OAuth consent remains external. App-password IMAP and
-  provider export files work now.
-- `imap-proto 0.10.2` emits a future-Rust warning; replace it before a compiler
-  release turns that warning into an error.
-- Large imports require enough memory for the source and ZIP. Users must choose
-  an encrypted destination when archive encryption is required.
+Run each command in `.factory/claims.json` exactly. Before accepting the release, resolve the three findings and rerun independent QA; PASS requires zero findings and zero untested public claims.

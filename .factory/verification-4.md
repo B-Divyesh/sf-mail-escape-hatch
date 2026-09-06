@@ -1,148 +1,116 @@
-# Repair verification 4 — PASS
+# Verify local mail archives — independent verification 4 — FAIL
 
-- Work order: `mail-escape-hatch-repair-3`
-- Implementation and release SHA: `dbe217579be31cf2800ea9875efe6e7f8f3ee63a`
-- Verification-test/documentation SHA: `a7ed308407c543a8f296a069ca2150de412b506a`
+- Work order: `mail-escape-hatch-verify-4`
+- Implementation reviewed: `dbe217579be31cf2800ea9875efe6e7f8f3ee63a`
+- Claim-test/documentation SHA: `7b52c11b8132e420e5665348a3ce0cb1f57f7764`
 - Release: `v0.1.2`
-- GitHub Actions run: `34011169108` — success
 - Live URL: `https://mail-escape-hatch.sociobot.in`
 - Verified: 2026-09-06 UTC
-- Result: **PASS for the repair scope.** All three verification-3 release blockers are closed.
+- Verdict: **FAIL — 3 findings and 6 untested public claims. Do not declare this release accepted.**
 
-## Current findings and fixes
+## Job, audience, and first action
 
-### Zero-byte base64 attachments — fixed
+Fresh 1440×900 desktop and 390×844 phone contexts opened the live landing page at scroll position zero.
 
-Empty base64 now decodes to a valid zero-byte array rather than an error. The
-browser regression imports unnamed, RFC 2231 continued-name, and named empty
-attachments, downloads the ZIP, and asserts:
+- Job: **Verify mail before you leave**.
+- Audience: people leaving an email provider who need a complete, readable local archive.
+- First action: **Try it with sample data**; the adjacent text says it will show four checked messages.
 
-- three attachment records and three archive files;
-- `attachments/00001/03-empty.dat` exists and is zero bytes;
-- its SHA-256 is `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`;
-- its manifest path and reader link are present; and
-- the report says **All checks passed** only after all three files are exported.
+This cold-read gate passes. The action is a proper link to `/demo` and did not require scrolling.
 
-The same boundary was repeated against the deployed HTTPS app and passed.
+## Findings
 
-### Reader truncation — fixed
+### Medium — the privacy contact link misses the required touch target
 
-The fixed 100,000-character slice was removed. The reader-completeness claim
-exports a message longer than 100,000 characters and asserts that the final
-`END-OF-MESSAGE-LEGAL-HOLD` marker and the complete body appear in `index.html`
-and that the original EML is byte-identical. The live boundary flow passed too.
+At 390 px wide, `/privacy` renders `mailto:privacy@sociobot.in` at 162×19 CSS px. The attached accessibility contract requires every touch target to be at least 44×44 px. This was the only undersized visible interactive item across `/`, `/demo`, `/app`, `/privacy`, and `/terms`; it is still a release finding even though axe and Lighthouse do not flag it.
 
-### Lighthouse instability — fixed
+### Medium — the declared 50-receipt license claim is not tested at its stated boundary
 
-The MIME/ZIP engine and sample module are now loaded only when a user opens the
-demo or imports mail. The GitHub release lookup starts only when the download
-section nears the viewport. The hero uses asynchronous decoding.
+`paid-history` promises that a $19 one-time license saves **up to 50** export receipts. Its exact declared command passes, but the test makes one export and asserts one receipt. It never creates receipt 50 or 51 and therefore does not prove the quantitative limit required by the claims contract.
 
-Three throttled mobile Lighthouse 13 runs against production scored:
+### Medium — five public claims have no `claims.json` entry or sandbox proof
 
-| Run | Performance | Accessibility | Best practices | SEO | LCP | TBT | CLS |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 1 | 100 | 100 | 100 | 100 | 1.45 s | 25 ms | 0 |
-| 2 | 100 | 100 | 100 | 100 | 1.35 s | 0 ms | 0 |
-| 3 | 100 | 100 | 100 | 100 | 1.48 s | 0 ms | 0 |
+The landing, privacy, and terms pages make these visitor-facing promises without a matching declared claim and test:
 
-Transferred bytes were 157,967–158,060. Initial application JavaScript is
-26,100 bytes raw / 9.14 kB gzip; CSS is 14,585 bytes raw / 4.00 kB gzip.
+1. Exported archives are not encrypted unless the destination is encrypted.
+2. New purchases are not open while billing registration is completed.
+3. Sociobot is the merchant of record.
+4. Refunds revoke a license.
+5. Builds are unsigned until signing certificates are added.
 
-## Minor findings and contract gaps
+These are useful material statements, not decoration. Add observable sandbox tests where possible or remove/rephrase the promises. Together with the incomplete 50-receipt proof, the untested-public-claim count is **6**.
 
-- README now lists the exact Debian/Ubuntu WebKit, AppIndicator, SVG, patching,
-  and secret-service packages required by the Rust checks.
-- The no-analytics statement now has a dedicated claim and browser test across
-  home, privacy, and demo export. It observed no data requests, external
-  origins, non-GET requests, or cookies in the sandbox.
-- `fflate` was updated from 0.8.2 to 0.8.3; `npm audit --audit-level=moderate`
-  now reports zero vulnerabilities.
-- The one-time $19 local history feature, daily license verification, return
-  token capture, and restore flow are present again. The billing product is
-  still not registered: its public checkout returns HTTP 404. The site does not
-  expose that broken checkout and states that new purchases are not open.
-  `/work/.evidence/billing-offer.json` contains the exact prior public offer for
-  the separate billing operator.
-- The client and static 404 now use the plain heading **Page not found**. Route
-  changes update canonical, Open Graph, and Twitter metadata.
+## Demo and real-data isolation
 
-## Clean setup and automated gates
+The live `/demo` path passes its functional check:
 
-The documented Linux packages were installed first, followed by `npm ci`.
+- It immediately shows a realistic four-message report with two attachments and one missing-Date review item.
+- The persistent banner says **Demo — sample data, nothing is saved** and exposes **Reset demo** and **Start for real**.
+- Reset retains the sample and the banner. Start for real returns the browser site to `/`, clears the sample, and leaves local and session storage empty.
+- A fresh demo context had no cookies, local storage, session storage, or demo-prefixed keys. Sample export made no data request.
 
-- Every command in all 22 `.factory/claims.json` entries: pass.
-- `npm test`: 15 Vitest tests and 11 Playwright tests pass.
-- `npx tsc --noEmit`: pass.
-- `npm run build`: pass; output is `dist/site/`.
+I used separate browser contexts for the sample, local imports, and offline test. No real mail source or account was used.
+
+## Independent archive and recovery checks
+
+Live `/app` checks passed in a fresh browser context:
+
+- A valid zero-byte `empty.dat` attachment exported at `attachments/00001/01-empty.dat`, length 0, with SHA-256 `e3b0c442…b855`, a manifest path, and no error.
+- A plain-text message longer than 100,000 characters exported a 135,881-character reader containing `END-OF-MESSAGE-LEGAL-HOLD`.
+- An empty EML reports `An EML message is empty or has no header/body separator. Choose a complete .eml file.` A following valid import succeeds, and **Choose different mail** returns to the real source picker.
+- A sample ZIP contains reader, manifest, original EML files, extracted attachments, and links from the reader.
+
+## Claims and clean setup
+
+From a separate clean clone, I installed the README's Debian/Ubuntu desktop prerequisites, ran `npm ci`, then executed every exact command in all 22 `.factory/claims.json` entries. All commands exited successfully; the final Playwright run reported `status: passed` with no failed tests. This does not remove the two claims-contract findings above: a passing command can still be incomplete proof.
+
+The 22 declared claims cover the sample sandbox, account-free use, archive contents, MBOX/Maildir, duplicates, local-only behavior, analytics, offline reload, original bytes, MIME boundaries, reader completeness, invalid input, IMAP read-only behavior, password handling, controls, installers, and the static 404.
+
+## Quality gates
+
+The clean clone passed:
+
+- `npm test`: 15 Vitest tests and 11 Playwright tests.
+- `npx tsc --noEmit`.
+- `npm run build`: `dist/site/` produced; initial application JavaScript is 26.10 kB raw / 9.14 kB gzip and CSS is 14.59 kB raw / 4.00 kB gzip.
+- `npm run lint:rust`: formatting and strict Clippy pass.
+- `cargo test --locked --manifest-path src-tauri/Cargo.toml`: 4 Rust tests pass. `imap-proto 0.10.2` prints a future-incompatibility warning.
 - `npm audit --audit-level=moderate`: zero vulnerabilities.
-- `npm run lint:rust`: Rust formatting and strict Clippy pass.
-- `cargo test --locked --manifest-path src-tauri/Cargo.toml`: 4 pass.
-- `git diff --check`: pass.
 
-`imap-proto 0.10.2` still prints a future-incompatibility warning. It does not
-fail the current stable compiler or tests.
+Three fresh simulated-mobile Lighthouse 13.4 runs against production scored 100 Performance, 100 Accessibility, 100 Best Practices, and 100 SEO. LCP was 1,470 ms, 1,357 ms, and 1,362 ms; Total Blocking Time was 43 ms, 12 ms, and 0 ms; CLS was 0 in every run.
 
-## Live browser, accessibility, privacy, and recovery
+`/opt/fleet/lib/verify-url.sh` passed production in 799 ms with no console errors, one title, `lang="en"`, one `<main>`, one `<h1>`, and no missing image alternatives.
 
-- The factory URL verifier passed in 863 ms with no console error, one `<h1>`,
-  `lang="en"`, one `<main>`, and complete image alternatives.
-- Fresh 1440×900 and 390×844 contexts show the job, audience, sample action,
-  privacy fact, account requirement, and price before scrolling.
-- One click opens four realistic messages and two attachments. The demo banner
-  persists through reset. **Start for real** clears the sample and leaves no
-  demo or export-history storage.
-- The live demo ZIP contains the expected reader, manifest, four EML files, and
-  two attachments. It makes only same-origin requests.
-- Axe found zero violations on home, demo, privacy, and terms at both desktop
-  and 390 px widths.
-- Keyboard checks passed for the skip link, main focus, IMAP dialog focus,
-  Escape close, and focus return. Reduced-motion styling reports 0.001 ms.
-- A fresh service-worker context contains only `mail-escape-hatch-v3`; the demo
-  reloads while offline.
-- Privacy and terms return 200 with route titles. An unknown route returns the
-  designed page with deliberate HTTP 404.
-- All seven rendered links resolve successfully. Security and cache headers are
-  present. All 27 deployable files match the local build byte-for-byte.
+## Live routes, accessibility, privacy, and recovery
 
-There is no product backend, tenant store, or product-owned HTTP rate limiter,
-so tenant isolation, SQLite restart persistence, health, and 429 checks do not
-apply. Mail and licensed receipts remain local to the desktop/browser.
+- `/`, `/demo`, `/app`, `/privacy`, and `/terms` return 200 with route-specific titles, one `<h1>`, and one `<main>`.
+- A deliberate unknown route returns the designed page with HTTP 404. Chromium reports the expected failed main-resource 404 console entry; it is not a product defect. Axe found no serious or critical violations on any tested route at desktop or 390 px widths.
+- The first Tab reaches the visible 3 px skip-link focus ring. Enter moves focus to `#main`. The IMAP dialog focuses Close, Escape closes it, and focus returns to **Connect to IMAP**. Reduced-motion emulation sets smooth scrolling to `auto`.
+- Normal routes had no console or page errors, no horizontal overflow at 390 px, and all crawlable HTTP(S) links returned 200. `robots.txt` and `sitemap.xml` return 200.
+- The live demo cached `mail-escape-hatch-v3` and reloaded offline after its first visit. The app has no product backend, tenant database, health endpoint, or product-owned rate limiter; tenant isolation, restart persistence, and 429/`Retry-After` checks do not apply.
+- Demo and local-file flows used only same-origin GET requests. The landing release lookup is documented to use GitHub's public API when its section enters view. No analytics, remote fonts, or third-party scripts were observed.
 
-## Release and installed-artifact evidence
+## Deployment and installed artifact
 
-Release `v0.1.2` has four macOS assets, two Windows installers, three Linux
-packages, `SHA256SUMS`, and `latest.json`. The manifest names all platforms.
-The published Debian package is version 0.1.2, amd64, and its downloaded hash
-matches `SHA256SUMS`:
+- The fresh local `dist/site` has 28 files. All 27 deployable files match production byte-for-byte by SHA-256. `staticwebapp.config.json` correctly returns 404 because it is host configuration, not a public asset.
+- GitHub Release `v0.1.2` targets implementation commit `dbe2175` and contains macOS arm64/x64, Windows MSI/EXE, Linux AppImage/DEB/RPM, `SHA256SUMS`, and `latest.json`.
+- In a fresh consumer directory, `Mail.Escape.Hatch_0.1.2_amd64.deb` matched `SHA256SUMS`, declared package `mail-escape-hatch` version `0.1.2` amd64, and its extracted binary remained running for 12 seconds under Xvfb. The only output was the expected headless EGL warning.
 
-`7fb5f443127ac3a6c690d13d9f86edc41bdc2f651486f660121ceda42a697b61`
+## Earlier finding disposition
 
-The Debian package was extracted into a fresh temporary consumer directory.
-Its 12,013,712-byte binary remained running for a 12-second Xvfb smoke test;
-the only output was the expected headless EGL warning. A fresh live browser
-resolves the Linux download button to the `v0.1.2` AppImage without console
-errors.
+| Earlier finding | Current evidence |
+| --- | --- |
+| Original bytes, MIME decoding, unnamed/continued MIME parts, IMAP read-only access, folder failures, and password persistence | Current declared tests pass; live zero-byte attachment and local recovery checks pass. |
+| Reader links and long-message truncation | Sample ZIP and live 100,000+-character export contain linked files and the final marker. |
+| Stale desktop release and checksum gaps | `v0.1.2` targets `dbe2175`; downloaded Debian artifact matches `SHA256SUMS` and smoke-runs. |
+| Service-worker replacement, true 404, demo controls, focusable table, recovery path, Rust lint | Current live v3 offline reload, HTTP 404, keyboard checks, recovery test, and lint/test gates pass. |
+| Performance instability and no-analytics claim | Three fresh Lighthouse runs are 100; the no-analytics declared test passes. |
+| Billing registration | The site deliberately exposes no broken checkout and says new purchases are unavailable. Its supporting public claims still need the coverage listed above. |
 
-## Earlier verification disposition
+## Required next work
 
-All findings from `.factory/verification.md` and `.factory/verification-2.md`
-remain fixed: original bytes, MIME transfer decoding, read-only IMAP, folder
-error reporting, linked originals and attachments, empty-EML rejection, true
-404 responses, mobile targets, focusable report scrolling, source-picker
-recovery, service-worker replacement, strict Rust lint, release identity, and
-installer checksums. Verification-3's empty-attachment, reader, performance,
-Linux-prerequisite, no-analytics-claim, and paid-feature gaps are addressed as
-described above.
+1. Make the privacy mailto link a 44×44 px touch target without reducing its visible focus treatment.
+2. Extend `paid-history` to create receipt 50 and receipt 51, then assert the exact 50-record limit and behavior at the boundary.
+3. Add one declared observable test per five unlisted public promises above, or remove promises that cannot be proved in the sandbox.
 
-## Remaining external dependencies
-
-- The Sociobot billing operator must register the existing $19 one-time offer
-  before new checkout can be opened. No provider credential or guessed offer
-  was added.
-- macOS notarization and Windows Authenticode still require owner-provided
-  signing certificates. Published builds remain clearly marked unsigned.
-- Gmail and Microsoft OAuth consent require provider app registration. App
-  passwords and provider export files remain supported.
-- Large imports are held in memory, and final archives are not encrypted unless
-  the user chooses an encrypted destination.
+Until those findings are resolved, this verification remains **FAIL**.
