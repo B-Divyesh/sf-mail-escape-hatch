@@ -93,7 +93,7 @@ function legal(kind: 'privacy' | 'terms'): string {
 }
 
 function notFound(): string {
-  return `${header()}<main id="main" tabindex="-1" class="not-found"><p class="code-404">404</p><h1>This route has no mail</h1><p>The page could not be found. The archive is unchanged.</p><a class="button primary" href="/" data-link>Return home</a></main>${footer()}`;
+  return `${header()}<main id="main" tabindex="-1" class="not-found"><p class="code-404">404</p><h1>Page not found</h1><p>The requested page does not exist. Your archive is unchanged.</p><a class="button primary" href="/" data-link>Return home</a></main>${footer()}`;
 }
 
 function html(value: string): string {
@@ -105,6 +105,11 @@ async function render(path = location.pathname, push = false): Promise<void> {
   const known = routeInfo[path] ? path : '/404';
   const meta = routeInfo[known]; document.title = meta.title;
   document.querySelector<HTMLMetaElement>('meta[name="description"]')!.content = meta.description;
+  document.querySelector<HTMLLinkElement>('link[rel="canonical"]')!.href = `https://mail-escape-hatch.sociobot.in${known === '/' ? '/' : known}`;
+  document.querySelector<HTMLMetaElement>('meta[property="og:title"]')!.content = meta.title;
+  document.querySelector<HTMLMetaElement>('meta[property="og:description"]')!.content = meta.description;
+  document.querySelector<HTMLMetaElement>('meta[name="twitter:title"]')!.content = meta.title;
+  document.querySelector<HTMLMetaElement>('meta[name="twitter:description"]')!.content = meta.description;
   demoMode = known === '/demo';
   if (demoMode && !archive) archive = await import('./sample').then((module) => module.sampleArchive());
   app.innerHTML = known === '/' ? landing() : known === '/demo' || known === '/app' ? workspace() : known === '/privacy' || known === '/terms' ? legal(known.slice(1) as 'privacy' | 'terms') : notFound();
